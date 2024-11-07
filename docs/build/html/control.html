@@ -1,0 +1,757 @@
+<!doctype html>
+<html class="no-js" lang="en" data-content_root="./">
+  <head><meta charset="utf-8"/>
+    <meta name="viewport" content="width=device-width,initial-scale=1"/>
+    <meta name="color-scheme" content="light dark"><meta name="viewport" content="width=device-width, initial-scale=1" />
+<link rel="index" title="Index" href="genindex.html" /><link rel="search" title="Search" href="search.html" /><link rel="next" title="Kinematics" href="kinematics.html" /><link rel="prev" title="Hardware" href="hardware.html" />
+
+    <!-- Generated with Sphinx 8.1.3 and Furo 2024.08.06 -->
+        <title>Control - dlib 0.0.1 documentation</title>
+      <link rel="stylesheet" type="text/css" href="_static/pygments.css?v=a746c00c" />
+    <link rel="stylesheet" type="text/css" href="_static/styles/furo.css?v=354aac6f" />
+    <link rel="stylesheet" type="text/css" href="_static/styles/furo-extensions.css?v=302659d7" />
+    
+    
+
+
+<style>
+  body {
+    --color-code-background: #f8f8f8;
+  --color-code-foreground: black;
+  
+  }
+  @media not print {
+    body[data-theme="dark"] {
+      --color-code-background: #202020;
+  --color-code-foreground: #d0d0d0;
+  
+    }
+    @media (prefers-color-scheme: dark) {
+      body:not([data-theme="light"]) {
+        --color-code-background: #202020;
+  --color-code-foreground: #d0d0d0;
+  
+      }
+    }
+  }
+</style></head>
+  <body>
+    
+    <script>
+      document.body.dataset.theme = localStorage.getItem("theme") || "auto";
+    </script>
+    
+
+<svg xmlns="http://www.w3.org/2000/svg" style="display: none;">
+  <symbol id="svg-toc" viewBox="0 0 24 24">
+    <title>Contents</title>
+    <svg stroke="currentColor" fill="currentColor" stroke-width="0" viewBox="0 0 1024 1024">
+      <path d="M408 442h480c4.4 0 8-3.6 8-8v-56c0-4.4-3.6-8-8-8H408c-4.4 0-8 3.6-8 8v56c0 4.4 3.6 8 8 8zm-8 204c0 4.4 3.6 8 8 8h480c4.4 0 8-3.6 8-8v-56c0-4.4-3.6-8-8-8H408c-4.4 0-8 3.6-8 8v56zm504-486H120c-4.4 0-8 3.6-8 8v56c0 4.4 3.6 8 8 8h784c4.4 0 8-3.6 8-8v-56c0-4.4-3.6-8-8-8zm0 632H120c-4.4 0-8 3.6-8 8v56c0 4.4 3.6 8 8 8h784c4.4 0 8-3.6 8-8v-56c0-4.4-3.6-8-8-8zM115.4 518.9L271.7 642c5.8 4.6 14.4.5 14.4-6.9V388.9c0-7.4-8.5-11.5-14.4-6.9L115.4 505.1a8.74 8.74 0 0 0 0 13.8z"/>
+    </svg>
+  </symbol>
+  <symbol id="svg-menu" viewBox="0 0 24 24">
+    <title>Menu</title>
+    <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor"
+      stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="feather-menu">
+      <line x1="3" y1="12" x2="21" y2="12"></line>
+      <line x1="3" y1="6" x2="21" y2="6"></line>
+      <line x1="3" y1="18" x2="21" y2="18"></line>
+    </svg>
+  </symbol>
+  <symbol id="svg-arrow-right" viewBox="0 0 24 24">
+    <title>Expand</title>
+    <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor"
+      stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="feather-chevron-right">
+      <polyline points="9 18 15 12 9 6"></polyline>
+    </svg>
+  </symbol>
+  <symbol id="svg-sun" viewBox="0 0 24 24">
+    <title>Light mode</title>
+    <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor"
+      stroke-width="1" stroke-linecap="round" stroke-linejoin="round" class="feather-sun">
+      <circle cx="12" cy="12" r="5"></circle>
+      <line x1="12" y1="1" x2="12" y2="3"></line>
+      <line x1="12" y1="21" x2="12" y2="23"></line>
+      <line x1="4.22" y1="4.22" x2="5.64" y2="5.64"></line>
+      <line x1="18.36" y1="18.36" x2="19.78" y2="19.78"></line>
+      <line x1="1" y1="12" x2="3" y2="12"></line>
+      <line x1="21" y1="12" x2="23" y2="12"></line>
+      <line x1="4.22" y1="19.78" x2="5.64" y2="18.36"></line>
+      <line x1="18.36" y1="5.64" x2="19.78" y2="4.22"></line>
+    </svg>
+  </symbol>
+  <symbol id="svg-moon" viewBox="0 0 24 24">
+    <title>Dark mode</title>
+    <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor"
+      stroke-width="1" stroke-linecap="round" stroke-linejoin="round" class="icon-tabler-moon">
+      <path stroke="none" d="M0 0h24v24H0z" fill="none" />
+      <path d="M12 3c.132 0 .263 0 .393 0a7.5 7.5 0 0 0 7.92 12.446a9 9 0 1 1 -8.313 -12.454z" />
+    </svg>
+  </symbol>
+  <symbol id="svg-sun-with-moon" viewBox="0 0 24 24">
+    <title>Auto light/dark, in light mode</title>
+    <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor"
+      stroke-width="1" stroke-linecap="round" stroke-linejoin="round"
+      class="icon-custom-derived-from-feather-sun-and-tabler-moon">
+      <path style="opacity: 50%" d="M 5.411 14.504 C 5.471 14.504 5.532 14.504 5.591 14.504 C 3.639 16.319 4.383 19.569 6.931 20.352 C 7.693 20.586 8.512 20.551 9.25 20.252 C 8.023 23.207 4.056 23.725 2.11 21.184 C 0.166 18.642 1.702 14.949 4.874 14.536 C 5.051 14.512 5.231 14.5 5.411 14.5 L 5.411 14.504 Z"/>
+      <line x1="14.5" y1="3.25" x2="14.5" y2="1.25"/>
+      <line x1="14.5" y1="15.85" x2="14.5" y2="17.85"/>
+      <line x1="10.044" y1="5.094" x2="8.63" y2="3.68"/>
+      <line x1="19" y1="14.05" x2="20.414" y2="15.464"/>
+      <line x1="8.2" y1="9.55" x2="6.2" y2="9.55"/>
+      <line x1="20.8" y1="9.55" x2="22.8" y2="9.55"/>
+      <line x1="10.044" y1="14.006" x2="8.63" y2="15.42"/>
+      <line x1="19" y1="5.05" x2="20.414" y2="3.636"/>
+      <circle cx="14.5" cy="9.55" r="3.6"/>
+    </svg>
+  </symbol>
+  <symbol id="svg-moon-with-sun" viewBox="0 0 24 24">
+    <title>Auto light/dark, in dark mode</title>
+    <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor"
+      stroke-width="1" stroke-linecap="round" stroke-linejoin="round"
+      class="icon-custom-derived-from-feather-sun-and-tabler-moon">
+      <path d="M 8.282 7.007 C 8.385 7.007 8.494 7.007 8.595 7.007 C 5.18 10.184 6.481 15.869 10.942 17.24 C 12.275 17.648 13.706 17.589 15 17.066 C 12.851 22.236 5.91 23.143 2.505 18.696 C -0.897 14.249 1.791 7.786 7.342 7.063 C 7.652 7.021 7.965 7 8.282 7 L 8.282 7.007 Z"/>
+      <line style="opacity: 50%" x1="18" y1="3.705" x2="18" y2="2.5"/>
+      <line style="opacity: 50%" x1="18" y1="11.295" x2="18" y2="12.5"/>
+      <line style="opacity: 50%" x1="15.316" y1="4.816" x2="14.464" y2="3.964"/>
+      <line style="opacity: 50%" x1="20.711" y1="10.212" x2="21.563" y2="11.063"/>
+      <line style="opacity: 50%" x1="14.205" y1="7.5" x2="13.001" y2="7.5"/>
+      <line style="opacity: 50%" x1="21.795" y1="7.5" x2="23" y2="7.5"/>
+      <line style="opacity: 50%" x1="15.316" y1="10.184" x2="14.464" y2="11.036"/>
+      <line style="opacity: 50%" x1="20.711" y1="4.789" x2="21.563" y2="3.937"/>
+      <circle style="opacity: 50%" cx="18" cy="7.5" r="2.169"/>
+    </svg>
+  </symbol>
+  <symbol id="svg-pencil" viewBox="0 0 24 24">
+    <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor"
+      stroke-width="1" stroke-linecap="round" stroke-linejoin="round" class="icon-tabler-pencil-code">
+      <path d="M4 20h4l10.5 -10.5a2.828 2.828 0 1 0 -4 -4l-10.5 10.5v4" />
+      <path d="M13.5 6.5l4 4" />
+      <path d="M20 21l2 -2l-2 -2" />
+      <path d="M17 17l-2 2l2 2" />
+    </svg>
+  </symbol>
+  <symbol id="svg-eye" viewBox="0 0 24 24">
+    <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor"
+      stroke-width="1" stroke-linecap="round" stroke-linejoin="round" class="icon-tabler-eye-code">
+      <path stroke="none" d="M0 0h24v24H0z" fill="none" />
+      <path d="M10 12a2 2 0 1 0 4 0a2 2 0 0 0 -4 0" />
+      <path
+        d="M11.11 17.958c-3.209 -.307 -5.91 -2.293 -8.11 -5.958c2.4 -4 5.4 -6 9 -6c3.6 0 6.6 2 9 6c-.21 .352 -.427 .688 -.647 1.008" />
+      <path d="M20 21l2 -2l-2 -2" />
+      <path d="M17 17l-2 2l2 2" />
+    </svg>
+  </symbol>
+</svg>
+
+<input type="checkbox" class="sidebar-toggle" name="__navigation" id="__navigation">
+<input type="checkbox" class="sidebar-toggle" name="__toc" id="__toc">
+<label class="overlay sidebar-overlay" for="__navigation">
+  <div class="visually-hidden">Hide navigation sidebar</div>
+</label>
+<label class="overlay toc-overlay" for="__toc">
+  <div class="visually-hidden">Hide table of contents sidebar</div>
+</label>
+
+<a class="skip-to-content muted-link" href="#furo-main-content">Skip to content</a>
+
+
+
+<div class="page">
+  <header class="mobile-header">
+    <div class="header-left">
+      <label class="nav-overlay-icon" for="__navigation">
+        <div class="visually-hidden">Toggle site navigation sidebar</div>
+        <i class="icon"><svg><use href="#svg-menu"></use></svg></i>
+      </label>
+    </div>
+    <div class="header-center">
+      <a href="index.html"><div class="brand">dlib 0.0.1 documentation</div></a>
+    </div>
+    <div class="header-right">
+      <div class="theme-toggle-container theme-toggle-header">
+        <button class="theme-toggle">
+          <div class="visually-hidden">Toggle Light / Dark / Auto color theme</div>
+          <svg class="theme-icon-when-auto-light"><use href="#svg-sun-with-moon"></use></svg>
+          <svg class="theme-icon-when-auto-dark"><use href="#svg-moon-with-sun"></use></svg>
+          <svg class="theme-icon-when-dark"><use href="#svg-moon"></use></svg>
+          <svg class="theme-icon-when-light"><use href="#svg-sun"></use></svg>
+        </button>
+      </div>
+      <label class="toc-overlay-icon toc-header-icon" for="__toc">
+        <div class="visually-hidden">Toggle table of contents sidebar</div>
+        <i class="icon"><svg><use href="#svg-toc"></use></svg></i>
+      </label>
+    </div>
+  </header>
+  <aside class="sidebar-drawer">
+    <div class="sidebar-container">
+      
+      <div class="sidebar-sticky"><a class="sidebar-brand" href="index.html">
+  
+  
+  <span class="sidebar-brand-text">dlib 0.0.1 documentation</span>
+  
+</a><form class="sidebar-search-container" method="get" action="search.html" role="search">
+  <input class="sidebar-search" placeholder="Search" name="q" aria-label="Search">
+  <input type="hidden" name="check_keywords" value="yes">
+  <input type="hidden" name="area" value="default">
+</form>
+<div id="searchbox"></div><div class="sidebar-scroll"><div class="sidebar-tree">
+  <p class="caption" role="heading"><span class="caption-text">Contents:</span></p>
+<ul class="current">
+<li class="toctree-l1 current has-children"><a class="reference internal" href="api.html">API</a><input checked="" class="toctree-checkbox" id="toctree-checkbox-1" name="toctree-checkbox-1" role="switch" type="checkbox"/><label for="toctree-checkbox-1"><div class="visually-hidden">Toggle navigation of API</div><i class="icon"><svg><use href="#svg-arrow-right"></use></svg></i></label><ul class="current">
+<li class="toctree-l2"><a class="reference internal" href="hardware.html">Hardware</a></li>
+<li class="toctree-l2 current current-page"><a class="current reference internal" href="#">Control</a></li>
+<li class="toctree-l2"><a class="reference internal" href="kinematics.html">Kinematics</a></li>
+<li class="toctree-l2"><a class="reference internal" href="trajectories.html">Trajectories</a></li>
+</ul>
+</li>
+</ul>
+
+</div>
+</div>
+
+      </div>
+      
+    </div>
+  </aside>
+  <div class="main">
+    <div class="content">
+      <div class="article-container">
+        <a href="#" class="back-to-top muted-link">
+          <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24">
+            <path d="M13 20h-2V8l-5.5 5.5-1.42-1.42L12 4.16l7.92 7.92-1.42 1.42L13 8v12z"></path>
+          </svg>
+          <span>Back to top</span>
+        </a>
+        <div class="content-icon-container">
+          <div class="view-this-page">
+  <a class="muted-link" href="_sources/control.rst.txt" title="View this page">
+    <svg><use href="#svg-eye"></use></svg>
+    <span class="visually-hidden">View this page</span>
+  </a>
+</div>
+<div class="theme-toggle-container theme-toggle-content">
+            <button class="theme-toggle">
+              <div class="visually-hidden">Toggle Light / Dark / Auto color theme</div>
+              <svg class="theme-icon-when-auto-light"><use href="#svg-sun-with-moon"></use></svg>
+              <svg class="theme-icon-when-auto-dark"><use href="#svg-moon-with-sun"></use></svg>
+              <svg class="theme-icon-when-dark"><use href="#svg-moon"></use></svg>
+              <svg class="theme-icon-when-light"><use href="#svg-sun"></use></svg>
+            </button>
+          </div>
+          <label class="toc-overlay-icon toc-content-icon" for="__toc">
+            <div class="visually-hidden">Toggle table of contents sidebar</div>
+            <i class="icon"><svg><use href="#svg-toc"></use></svg></i>
+          </label>
+        </div>
+        <article role="main" id="furo-main-content">
+          <section id="control">
+<h1>Control<a class="headerlink" href="#control" title="Link to this heading">¶</a></h1>
+<dl class="cpp class">
+<dt class="sig sig-object cpp" id="_CPPv4I0EN4dlib3PidE">
+<span id="_CPPv3I0EN4dlib3PidE"></span><span id="_CPPv2I0EN4dlib3PidE"></span><span class="k"><span class="pre">template</span></span><span class="p"><span class="pre">&lt;</span></span><span class="k"><span class="pre">typename</span></span><span class="w"> </span><span class="sig-name descname"><span class="n"><span class="pre">Units</span></span></span><span class="p"><span class="pre">&gt;</span></span><br /><span class="target" id="classdlib_1_1_pid"></span><span class="k"><span class="pre">class</span></span><span class="w"> </span><span class="sig-name descname"><span class="n"><span class="pre">Pid</span></span></span><a class="headerlink" href="#_CPPv4I0EN4dlib3PidE" title="Link to this definition">¶</a><br /></dt>
+<dd><div class="breathe-sectiondef docutils container">
+<p class="breathe-sectiondef-title rubric" id="breathe-section-title-public-functions">Public Functions</p>
+<dl class="cpp function">
+<dt class="sig sig-object cpp" id="_CPPv4N4dlib3Pid6targetEN2au8QuantityI5UnitsdEE">
+<span id="_CPPv3N4dlib3Pid6targetEN2au8QuantityI5UnitsdEE"></span><span id="_CPPv2N4dlib3Pid6targetEN2au8QuantityI5UnitsdEE"></span><span id="dlib::Pid::target__au::Quantity:Units.double:"></span><span class="target" id="classdlib_1_1_pid_1ab1114acbaef0efe65d5850e43452de29"></span><span class="k"><span class="pre">inline</span></span><span class="w"> </span><span class="kt"><span class="pre">void</span></span><span class="w"> </span><span class="sig-name descname"><span class="n"><span class="pre">target</span></span></span><span class="sig-paren">(</span><span class="n"><span class="pre">au</span></span><span class="p"><span class="pre">::</span></span><span class="n"><span class="pre">Quantity</span></span><span class="p"><span class="pre">&lt;</span></span><a class="reference internal" href="#_CPPv4I0EN4dlib3PidE" title="dlib::Pid::Units"><span class="n"><span class="pre">Units</span></span></a><span class="p"><span class="pre">,</span></span><span class="w"> </span><span class="kt"><span class="pre">double</span></span><span class="p"><span class="pre">&gt;</span></span><span class="w"> </span><span class="n sig-param"><span class="pre">setpoint</span></span><span class="sig-paren">)</span><a class="headerlink" href="#_CPPv4N4dlib3Pid6targetEN2au8QuantityI5UnitsdEE" title="Link to this definition">¶</a><br /></dt>
+<dd><p>Set <a class="reference internal" href="#classdlib_1_1_pid"><span class="std std-ref">Pid</span></a> setpoint. </p>
+<p><strong>Example</strong> <div class="highlight-cpp notranslate"><div class="highlight"><pre><span></span><span class="c1">// Construct a Pid controller</span>
+<span class="n">dlib</span><span class="o">::</span><span class="n">Pid</span><span class="o">&lt;</span><span class="n">Meters</span><span class="o">&gt;</span><span class="w"> </span><span class="n">pid</span><span class="p">({</span><span class="mi">1</span><span class="p">,</span><span class="w"> </span><span class="mi">2</span><span class="p">,</span><span class="w"> </span><span class="mi">3</span><span class="p">});</span>
+
+<span class="c1">// Target an example setpoint</span>
+<span class="n">move_pid</span><span class="p">.</span><span class="n">target</span><span class="p">(</span><span class="n">meters</span><span class="p">(</span><span class="mi">1</span><span class="p">));</span>
+</pre></div>
+</div>
+ </p>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters<span class="colon">:</span></dt>
+<dd class="field-odd"><p><strong>setpoint</strong> – the end goal for the controller</p>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="cpp function">
+<dt class="sig sig-object cpp" id="_CPPv4N4dlib3Pid6updateEN2au8QuantityI5UnitsdEEN2au8QuantityIN2au7SecondsEdEE">
+<span id="_CPPv3N4dlib3Pid6updateEN2au8QuantityI5UnitsdEEN2au8QuantityIN2au7SecondsEdEE"></span><span id="_CPPv2N4dlib3Pid6updateEN2au8QuantityI5UnitsdEEN2au8QuantityIN2au7SecondsEdEE"></span><span id="dlib::Pid::update__au::Quantity:Units.double:.au::Quantity:au::Seconds.double:"></span><span class="target" id="classdlib_1_1_pid_1a54e856a630edf71a39ef1efe086a5bad"></span><span class="k"><span class="pre">inline</span></span><span class="w"> </span><span class="n"><span class="pre">au</span></span><span class="p"><span class="pre">::</span></span><span class="n"><span class="pre">Quantity</span></span><span class="p"><span class="pre">&lt;</span></span><span class="n"><span class="pre">au</span></span><span class="p"><span class="pre">::</span></span><span class="n"><span class="pre">Volts</span></span><span class="p"><span class="pre">,</span></span><span class="w"> </span><span class="kt"><span class="pre">double</span></span><span class="p"><span class="pre">&gt;</span></span><span class="w"> </span><span class="sig-name descname"><span class="n"><span class="pre">update</span></span></span><span class="sig-paren">(</span>
+
+<dl>
+<dd><span class="n"><span class="pre">au</span></span><span class="p"><span class="pre">::</span></span><span class="n"><span class="pre">Quantity</span></span><span class="p"><span class="pre">&lt;</span></span><a class="reference internal" href="#_CPPv4I0EN4dlib3PidE" title="dlib::Pid::Units"><span class="n"><span class="pre">Units</span></span></a><span class="p"><span class="pre">,</span></span><span class="w"> </span><span class="kt"><span class="pre">double</span></span><span class="p"><span class="pre">&gt;</span></span><span class="w"> </span><span class="n sig-param"><span class="pre">reading</span></span>,</dd>
+<dd><span class="n"><span class="pre">au</span></span><span class="p"><span class="pre">::</span></span><span class="n"><span class="pre">Quantity</span></span><span class="p"><span class="pre">&lt;</span></span><span class="n"><span class="pre">au</span></span><span class="p"><span class="pre">::</span></span><span class="n"><span class="pre">Seconds</span></span><span class="p"><span class="pre">,</span></span><span class="w"> </span><span class="kt"><span class="pre">double</span></span><span class="p"><span class="pre">&gt;</span></span><span class="w"> </span><span class="n sig-param"><span class="pre">period</span></span>,</dd>
+</dl>
+
+<span class="sig-paren">)</span><a class="headerlink" href="#_CPPv4N4dlib3Pid6updateEN2au8QuantityI5UnitsdEEN2au8QuantityIN2au7SecondsEdEE" title="Link to this definition">¶</a><br /></dt>
+<dd><p>Calculate <a class="reference internal" href="#classdlib_1_1_pid"><span class="std std-ref">Pid</span></a> voltage. </p>
+<p><strong>Example</strong> <div class="highlight-cpp notranslate"><div class="highlight"><pre><span></span><span class="c1">// Construct a Pid controller</span>
+<span class="n">dlib</span><span class="o">::</span><span class="n">Pid</span><span class="o">&lt;</span><span class="n">Meters</span><span class="o">&gt;</span><span class="w"> </span><span class="n">pid</span><span class="p">({</span><span class="mi">1</span><span class="p">,</span><span class="w"> </span><span class="mi">2</span><span class="p">,</span><span class="w"> </span><span class="mi">3</span><span class="p">});</span>
+
+<span class="c1">// Calculate voltage with a test input</span>
+<span class="n">Quantity</span><span class="o">&lt;</span><span class="n">Volts</span><span class="p">,</span><span class="w"> </span><span class="kt">double</span><span class="o">&gt;</span><span class="w"> </span><span class="n">voltage</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="n">pid</span><span class="p">.</span><span class="n">update</span><span class="p">(</span><span class="n">meters</span><span class="p">(</span><span class="mf">0.05</span><span class="p">),</span><span class="w"> </span><span class="n">seconds</span><span class="p">(</span><span class="mf">0.02</span><span class="p">));</span>
+</pre></div>
+</div>
+ </p>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters<span class="colon">:</span></dt>
+<dd class="field-odd"><ul class="simple">
+<li><p><strong>reading</strong> – the current sensor reading </p></li>
+<li><p><strong>period</strong> – the interval at which the pid is updated </p></li>
+</ul>
+</dd>
+<dt class="field-even">Returns<span class="colon">:</span></dt>
+<dd class="field-even"><p>the voltage to send to your mechanism</p>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="cpp function">
+<dt class="sig sig-object cpp" id="_CPPv4N4dlib3Pid9get_gainsEv">
+<span id="_CPPv3N4dlib3Pid9get_gainsEv"></span><span id="_CPPv2N4dlib3Pid9get_gainsEv"></span><span id="dlib::Pid::get_gains"></span><span class="target" id="classdlib_1_1_pid_1a4d6c49dd7e2c040f16885583b6f24cdf"></span><span class="k"><span class="pre">inline</span></span><span class="w"> </span><a class="reference internal" href="#_CPPv4N4dlib8PidGainsE" title="dlib::PidGains"><span class="n"><span class="pre">PidGains</span></span></a><span class="w"> </span><span class="sig-name descname"><span class="n"><span class="pre">get_gains</span></span></span><span class="sig-paren">(</span><span class="sig-paren">)</span><a class="headerlink" href="#_CPPv4N4dlib3Pid9get_gainsEv" title="Link to this definition">¶</a><br /></dt>
+<dd><p>Get <a class="reference internal" href="#classdlib_1_1_pid"><span class="std std-ref">Pid</span></a> gains. </p>
+<p><strong>Example</strong> <div class="highlight-cpp notranslate"><div class="highlight"><pre><span></span><span class="c1">// Construct a Pid controller</span>
+<span class="n">dlib</span><span class="o">::</span><span class="n">Pid</span><span class="o">&lt;</span><span class="n">Meters</span><span class="o">&gt;</span><span class="w"> </span><span class="n">pid</span><span class="p">({</span><span class="mi">1</span><span class="p">,</span><span class="w"> </span><span class="mi">2</span><span class="p">,</span><span class="w"> </span><span class="mi">3</span><span class="p">});</span>
+
+<span class="c1">// Get the Pid gains</span>
+<span class="n">dlib</span><span class="o">::</span><span class="n">PidGains</span><span class="w"> </span><span class="n">gains</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="n">pid</span><span class="p">.</span><span class="n">get_gains</span><span class="p">();</span>
+</pre></div>
+</div>
+ </p>
+<dl class="field-list simple">
+<dt class="field-odd">Returns<span class="colon">:</span></dt>
+<dd class="field-odd"><p>The current <a class="reference internal" href="#classdlib_1_1_pid"><span class="std std-ref">Pid</span></a> gains</p>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="cpp function">
+<dt class="sig sig-object cpp" id="_CPPv4N4dlib3Pid9set_gainsE8PidGains">
+<span id="_CPPv3N4dlib3Pid9set_gainsE8PidGains"></span><span id="_CPPv2N4dlib3Pid9set_gainsE8PidGains"></span><span id="dlib::Pid::set_gains__PidGains"></span><span class="target" id="classdlib_1_1_pid_1a98c02d8fba954028835599a1a7f2993e"></span><span class="k"><span class="pre">inline</span></span><span class="w"> </span><span class="kt"><span class="pre">void</span></span><span class="w"> </span><span class="sig-name descname"><span class="n"><span class="pre">set_gains</span></span></span><span class="sig-paren">(</span><a class="reference internal" href="#_CPPv4N4dlib8PidGainsE" title="dlib::PidGains"><span class="n"><span class="pre">PidGains</span></span></a><span class="w"> </span><span class="n sig-param"><span class="pre">gains</span></span><span class="sig-paren">)</span><a class="headerlink" href="#_CPPv4N4dlib3Pid9set_gainsE8PidGains" title="Link to this definition">¶</a><br /></dt>
+<dd><p>Set <a class="reference internal" href="#classdlib_1_1_pid"><span class="std std-ref">Pid</span></a> gains. </p>
+<p><strong>Example</strong> <div class="highlight-cpp notranslate"><div class="highlight"><pre><span></span><span class="c1">// Construct a Pid controller</span>
+<span class="n">dlib</span><span class="o">::</span><span class="n">Pid</span><span class="o">&lt;</span><span class="n">Meters</span><span class="o">&gt;</span><span class="w"> </span><span class="n">pid</span><span class="p">({</span><span class="mi">1</span><span class="p">,</span><span class="w"> </span><span class="mi">2</span><span class="p">,</span><span class="w"> </span><span class="mi">3</span><span class="p">});</span>
+
+<span class="c1">// Set the Pid gains</span>
+<span class="n">pid</span><span class="p">.</span><span class="n">set_gains</span><span class="p">({</span><span class="mi">4</span><span class="p">,</span><span class="w"> </span><span class="mi">5</span><span class="p">,</span><span class="w"> </span><span class="mi">6</span><span class="p">});</span>
+</pre></div>
+</div>
+ </p>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters<span class="colon">:</span></dt>
+<dd class="field-odd"><p><strong>gains</strong> – gains to set the <a class="reference internal" href="#classdlib_1_1_pid"><span class="std std-ref">Pid</span></a> constructor to</p>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="cpp function">
+<dt class="sig sig-object cpp" id="_CPPv4N4dlib3Pid9get_errorEv">
+<span id="_CPPv3N4dlib3Pid9get_errorEv"></span><span id="_CPPv2N4dlib3Pid9get_errorEv"></span><span id="dlib::Pid::get_error"></span><span class="target" id="classdlib_1_1_pid_1a3d3cd672d39b289bce70c99412af5e78"></span><span class="k"><span class="pre">inline</span></span><span class="w"> </span><span class="n"><span class="pre">au</span></span><span class="p"><span class="pre">::</span></span><span class="n"><span class="pre">Quantity</span></span><span class="p"><span class="pre">&lt;</span></span><a class="reference internal" href="#_CPPv4I0EN4dlib3PidE" title="dlib::Pid::Units"><span class="n"><span class="pre">Units</span></span></a><span class="p"><span class="pre">,</span></span><span class="w"> </span><span class="kt"><span class="pre">double</span></span><span class="p"><span class="pre">&gt;</span></span><span class="w"> </span><span class="sig-name descname"><span class="n"><span class="pre">get_error</span></span></span><span class="sig-paren">(</span><span class="sig-paren">)</span><a class="headerlink" href="#_CPPv4N4dlib3Pid9get_errorEv" title="Link to this definition">¶</a><br /></dt>
+<dd><p>Get <a class="reference internal" href="#classdlib_1_1_pid"><span class="std std-ref">Pid</span></a> error. </p>
+<p><strong>Example</strong> <div class="highlight-cpp notranslate"><div class="highlight"><pre><span></span><span class="n">v</span>
+<span class="c1">// Construct a Pid controller</span>
+<span class="n">dlib</span><span class="o">::</span><span class="n">Pid</span><span class="o">&lt;</span><span class="n">Meters</span><span class="o">&gt;</span><span class="w"> </span><span class="n">pid</span><span class="p">({</span><span class="mi">1</span><span class="p">,</span><span class="w"> </span><span class="mi">2</span><span class="p">,</span><span class="w"> </span><span class="mi">3</span><span class="p">});</span>
+
+<span class="c1">// Get Pid error</span>
+<span class="n">Quantity</span><span class="o">&lt;</span><span class="n">Meters</span><span class="p">,</span><span class="w"> </span><span class="kt">double</span><span class="o">&gt;</span><span class="w"> </span><span class="n">error</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="n">pid</span><span class="p">.</span><span class="n">get_error</span><span class="p">();</span>
+</pre></div>
+</div>
+ </p>
+<dl class="field-list simple">
+<dt class="field-odd">Returns<span class="colon">:</span></dt>
+<dd class="field-odd"><p>The current error (how far the controller is from the setpoint)</p>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="cpp function">
+<dt class="sig sig-object cpp" id="_CPPv4N4dlib3Pid14get_derivativeEv">
+<span id="_CPPv3N4dlib3Pid14get_derivativeEv"></span><span id="_CPPv2N4dlib3Pid14get_derivativeEv"></span><span id="dlib::Pid::get_derivative"></span><span class="target" id="classdlib_1_1_pid_1ae37de8a4f230925598fc460a021473e4"></span><span class="k"><span class="pre">inline</span></span><span class="w"> </span><span class="n"><span class="pre">au</span></span><span class="p"><span class="pre">::</span></span><span class="n"><span class="pre">Quantity</span></span><span class="p"><span class="pre">&lt;</span></span><span class="n"><span class="pre">au</span></span><span class="p"><span class="pre">::</span></span><span class="n"><span class="pre">TimeDerivative</span></span><span class="p"><span class="pre">&lt;</span></span><a class="reference internal" href="#_CPPv4I0EN4dlib3PidE" title="dlib::Pid::Units"><span class="n"><span class="pre">Units</span></span></a><span class="p"><span class="pre">&gt;</span></span><span class="p"><span class="pre">,</span></span><span class="w"> </span><span class="kt"><span class="pre">double</span></span><span class="p"><span class="pre">&gt;</span></span><span class="w"> </span><span class="sig-name descname"><span class="n"><span class="pre">get_derivative</span></span></span><span class="sig-paren">(</span><span class="sig-paren">)</span><a class="headerlink" href="#_CPPv4N4dlib3Pid14get_derivativeEv" title="Link to this definition">¶</a><br /></dt>
+<dd><p>Get <a class="reference internal" href="#classdlib_1_1_pid"><span class="std std-ref">Pid</span></a> derivative. </p>
+<p><strong>Example</strong> <div class="highlight-cpp notranslate"><div class="highlight"><pre><span></span><span class="c1">// Construct a Pid controller</span>
+<span class="n">dlib</span><span class="o">::</span><span class="n">Pid</span><span class="o">&lt;</span><span class="n">Meters</span><span class="o">&gt;</span><span class="w"> </span><span class="n">pid</span><span class="p">({</span><span class="mi">1</span><span class="p">,</span><span class="w"> </span><span class="mi">2</span><span class="p">,</span><span class="w"> </span><span class="mi">3</span><span class="p">});</span>
+
+<span class="c1">// Get Pid derivative</span>
+<span class="n">Quantity</span><span class="o">&lt;</span><span class="n">TimeDerivative</span><span class="o">&lt;</span><span class="n">Meters</span><span class="o">&gt;</span><span class="p">,</span><span class="w"> </span><span class="kt">double</span><span class="o">&gt;</span><span class="w"> </span><span class="n">derivative</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="n">pid</span><span class="p">.</span><span class="n">get_derivative</span><span class="p">();</span>
+</pre></div>
+</div>
+ </p>
+<dl class="field-list simple">
+<dt class="field-odd">Returns<span class="colon">:</span></dt>
+<dd class="field-odd"><p>The current derivative (how quickly the error is changing)</p>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="cpp function">
+<dt class="sig sig-object cpp" id="_CPPv4N4dlib3Pid5get_pEv">
+<span id="_CPPv3N4dlib3Pid5get_pEv"></span><span id="_CPPv2N4dlib3Pid5get_pEv"></span><span id="dlib::Pid::get_p"></span><span class="target" id="classdlib_1_1_pid_1a8b37c24fac3206cdd2cb10c2863d347a"></span><span class="k"><span class="pre">inline</span></span><span class="w"> </span><span class="n"><span class="pre">au</span></span><span class="p"><span class="pre">::</span></span><span class="n"><span class="pre">Quantity</span></span><span class="p"><span class="pre">&lt;</span></span><span class="n"><span class="pre">au</span></span><span class="p"><span class="pre">::</span></span><span class="n"><span class="pre">Volts</span></span><span class="p"><span class="pre">,</span></span><span class="w"> </span><span class="kt"><span class="pre">double</span></span><span class="p"><span class="pre">&gt;</span></span><span class="w"> </span><span class="sig-name descname"><span class="n"><span class="pre">get_p</span></span></span><span class="sig-paren">(</span><span class="sig-paren">)</span><a class="headerlink" href="#_CPPv4N4dlib3Pid5get_pEv" title="Link to this definition">¶</a><br /></dt>
+<dd><p>Get the portion of voltage generated by the P term. </p>
+<dl class="field-list simple">
+<dt class="field-odd">Returns<span class="colon">:</span></dt>
+<dd class="field-odd"><p>The voltage portion </p>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="cpp function">
+<dt class="sig sig-object cpp" id="_CPPv4N4dlib3Pid5get_iEv">
+<span id="_CPPv3N4dlib3Pid5get_iEv"></span><span id="_CPPv2N4dlib3Pid5get_iEv"></span><span id="dlib::Pid::get_i"></span><span class="target" id="classdlib_1_1_pid_1a7645403d3ef126735b457e4cdeb5717b"></span><span class="k"><span class="pre">inline</span></span><span class="w"> </span><span class="n"><span class="pre">au</span></span><span class="p"><span class="pre">::</span></span><span class="n"><span class="pre">Quantity</span></span><span class="p"><span class="pre">&lt;</span></span><span class="n"><span class="pre">au</span></span><span class="p"><span class="pre">::</span></span><span class="n"><span class="pre">Volts</span></span><span class="p"><span class="pre">,</span></span><span class="w"> </span><span class="kt"><span class="pre">double</span></span><span class="p"><span class="pre">&gt;</span></span><span class="w"> </span><span class="sig-name descname"><span class="n"><span class="pre">get_i</span></span></span><span class="sig-paren">(</span><span class="sig-paren">)</span><a class="headerlink" href="#_CPPv4N4dlib3Pid5get_iEv" title="Link to this definition">¶</a><br /></dt>
+<dd><p>Get the portion of voltage generated by the I term. </p>
+<dl class="field-list simple">
+<dt class="field-odd">Returns<span class="colon">:</span></dt>
+<dd class="field-odd"><p>The voltage portion </p>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="cpp function">
+<dt class="sig sig-object cpp" id="_CPPv4N4dlib3Pid5get_dEv">
+<span id="_CPPv3N4dlib3Pid5get_dEv"></span><span id="_CPPv2N4dlib3Pid5get_dEv"></span><span id="dlib::Pid::get_d"></span><span class="target" id="classdlib_1_1_pid_1a19a4c05f1b1f9f890d07156178b2c367"></span><span class="k"><span class="pre">inline</span></span><span class="w"> </span><span class="n"><span class="pre">au</span></span><span class="p"><span class="pre">::</span></span><span class="n"><span class="pre">Quantity</span></span><span class="p"><span class="pre">&lt;</span></span><span class="n"><span class="pre">au</span></span><span class="p"><span class="pre">::</span></span><span class="n"><span class="pre">Volts</span></span><span class="p"><span class="pre">,</span></span><span class="w"> </span><span class="kt"><span class="pre">double</span></span><span class="p"><span class="pre">&gt;</span></span><span class="w"> </span><span class="sig-name descname"><span class="n"><span class="pre">get_d</span></span></span><span class="sig-paren">(</span><span class="sig-paren">)</span><a class="headerlink" href="#_CPPv4N4dlib3Pid5get_dEv" title="Link to this definition">¶</a><br /></dt>
+<dd><p>Get the portion of voltage generated by the D term. </p>
+<dl class="field-list simple">
+<dt class="field-odd">Returns<span class="colon">:</span></dt>
+<dd class="field-odd"><p>The voltage portion </p>
+</dd>
+</dl>
+</dd></dl>
+
+</div>
+</dd></dl>
+
+<dl class="cpp struct">
+<dt class="sig sig-object cpp" id="_CPPv4N4dlib8PidGainsE">
+<span id="_CPPv3N4dlib8PidGainsE"></span><span id="_CPPv2N4dlib8PidGainsE"></span><span id="dlib::PidGains"></span><span class="target" id="structdlib_1_1_pid_gains"></span><span class="k"><span class="pre">struct</span></span><span class="w"> </span><span class="sig-name descname"><span class="n"><span class="pre">PidGains</span></span></span><a class="headerlink" href="#_CPPv4N4dlib8PidGainsE" title="Link to this definition">¶</a><br /></dt>
+<dd><p>The gains for a standard <a class="reference internal" href="#classdlib_1_1_pid"><span class="std std-ref">Pid</span></a> controller. </p>
+<div class="breathe-sectiondef docutils container">
+<p class="breathe-sectiondef-title rubric" id="breathe-section-title-public-members">Public Members</p>
+<dl class="cpp var">
+<dt class="sig sig-object cpp" id="_CPPv4N4dlib8PidGains2kpE">
+<span id="_CPPv3N4dlib8PidGains2kpE"></span><span id="_CPPv2N4dlib8PidGains2kpE"></span><span id="dlib::PidGains::kp__double"></span><span class="target" id="structdlib_1_1_pid_gains_1a6dcd1238bcd7c08379f3a1e3b2c08f66"></span><span class="kt"><span class="pre">double</span></span><span class="w"> </span><span class="sig-name descname"><span class="n"><span class="pre">kp</span></span></span><span class="w"> </span><span class="p"><span class="pre">=</span></span><span class="w"> </span><span class="m"><span class="pre">0</span></span><a class="headerlink" href="#_CPPv4N4dlib8PidGains2kpE" title="Link to this definition">¶</a><br /></dt>
+<dd><p>The porpotional gain: how aggresively the controller responds to error </p>
+</dd></dl>
+
+<dl class="cpp var">
+<dt class="sig sig-object cpp" id="_CPPv4N4dlib8PidGains2kiE">
+<span id="_CPPv3N4dlib8PidGains2kiE"></span><span id="_CPPv2N4dlib8PidGains2kiE"></span><span id="dlib::PidGains::ki__double"></span><span class="target" id="structdlib_1_1_pid_gains_1af68a8c34efb8f25bd55125c3505aad04"></span><span class="kt"><span class="pre">double</span></span><span class="w"> </span><span class="sig-name descname"><span class="n"><span class="pre">ki</span></span></span><span class="w"> </span><span class="p"><span class="pre">=</span></span><span class="w"> </span><span class="m"><span class="pre">0</span></span><a class="headerlink" href="#_CPPv4N4dlib8PidGains2kiE" title="Link to this definition">¶</a><br /></dt>
+<dd><p>The integral gain: how much to increase the response if error persists too long </p>
+</dd></dl>
+
+<dl class="cpp var">
+<dt class="sig sig-object cpp" id="_CPPv4N4dlib8PidGains2kdE">
+<span id="_CPPv3N4dlib8PidGains2kdE"></span><span id="_CPPv2N4dlib8PidGains2kdE"></span><span id="dlib::PidGains::kd__double"></span><span class="target" id="structdlib_1_1_pid_gains_1a76360ca3166a6f668589f618e0712844"></span><span class="kt"><span class="pre">double</span></span><span class="w"> </span><span class="sig-name descname"><span class="n"><span class="pre">kd</span></span></span><span class="w"> </span><span class="p"><span class="pre">=</span></span><span class="w"> </span><span class="m"><span class="pre">0</span></span><a class="headerlink" href="#_CPPv4N4dlib8PidGains2kdE" title="Link to this definition">¶</a><br /></dt>
+<dd><p>The derivative gain: used to limit the speed of the controllers response </p>
+</dd></dl>
+
+</div>
+</dd></dl>
+
+<dl class="cpp class">
+<dt class="sig sig-object cpp" id="_CPPv4N4dlib11FeedforwardE">
+<span id="_CPPv3N4dlib11FeedforwardE"></span><span id="_CPPv2N4dlib11FeedforwardE"></span><span id="dlib::Feedforward"></span><span class="target" id="classdlib_1_1_feedforward"></span><span class="k"><span class="pre">class</span></span><span class="w"> </span><span class="sig-name descname"><span class="n"><span class="pre">Feedforward</span></span></span><a class="headerlink" href="#_CPPv4N4dlib11FeedforwardE" title="Link to this definition">¶</a><br /></dt>
+<dd><div class="breathe-sectiondef docutils container">
+<p class="breathe-sectiondef-title rubric" id="breathe-section-title-public-functions">Public Functions</p>
+<dl class="cpp function">
+<dt class="sig sig-object cpp" id="_CPPv4N4dlib11Feedforward9calculateEN2au8QuantityIN2au15MetersPerSecondEdEEN2au8QuantityIN2au22MetersPerSecondSquaredEdEE">
+<span id="_CPPv3N4dlib11Feedforward9calculateEN2au8QuantityIN2au15MetersPerSecondEdEEN2au8QuantityIN2au22MetersPerSecondSquaredEdEE"></span><span id="_CPPv2N4dlib11Feedforward9calculateEN2au8QuantityIN2au15MetersPerSecondEdEEN2au8QuantityIN2au22MetersPerSecondSquaredEdEE"></span><span id="dlib::Feedforward::calculate__au::Quantity:au::MetersPerSecond.double:.au::Quantity:au::MetersPerSecondSquared.double:"></span><span class="target" id="classdlib_1_1_feedforward_1aabd57b09f20bbbc9e75d844b079345df"></span><span class="n"><span class="pre">au</span></span><span class="p"><span class="pre">::</span></span><span class="n"><span class="pre">Quantity</span></span><span class="p"><span class="pre">&lt;</span></span><span class="n"><span class="pre">au</span></span><span class="p"><span class="pre">::</span></span><span class="n"><span class="pre">Volts</span></span><span class="p"><span class="pre">,</span></span><span class="w"> </span><span class="kt"><span class="pre">double</span></span><span class="p"><span class="pre">&gt;</span></span><span class="w"> </span><span class="sig-name descname"><span class="n"><span class="pre">calculate</span></span></span><span class="sig-paren">(</span>
+
+<dl>
+<dd><span class="n"><span class="pre">au</span></span><span class="p"><span class="pre">::</span></span><span class="n"><span class="pre">Quantity</span></span><span class="p"><span class="pre">&lt;</span></span><span class="n"><span class="pre">au</span></span><span class="p"><span class="pre">::</span></span><span class="n"><span class="pre">MetersPerSecond</span></span><span class="p"><span class="pre">,</span></span><span class="w"> </span><span class="kt"><span class="pre">double</span></span><span class="p"><span class="pre">&gt;</span></span><span class="w"> </span><span class="n sig-param"><span class="pre">target_velocity</span></span>,</dd>
+<dd><span class="n"><span class="pre">au</span></span><span class="p"><span class="pre">::</span></span><span class="n"><span class="pre">Quantity</span></span><span class="p"><span class="pre">&lt;</span></span><span class="n"><span class="pre">au</span></span><span class="p"><span class="pre">::</span></span><span class="n"><span class="pre">MetersPerSecondSquared</span></span><span class="p"><span class="pre">,</span></span><span class="w"> </span><span class="kt"><span class="pre">double</span></span><span class="p"><span class="pre">&gt;</span></span><span class="w"> </span><span class="n sig-param"><span class="pre">target_acceleration</span></span><span class="w"> </span><span class="p"><span class="pre">=</span></span><span class="w"> </span><span class="n"><span class="pre">au</span></span><span class="p"><span class="pre">::</span></span><span class="n"><span class="pre">ZERO</span></span>,</dd>
+</dl>
+
+<span class="sig-paren">)</span><a class="headerlink" href="#_CPPv4N4dlib11Feedforward9calculateEN2au8QuantityIN2au15MetersPerSecondEdEEN2au8QuantityIN2au22MetersPerSecondSquaredEdEE" title="Link to this definition">¶</a><br /></dt>
+<dd><p>Calculate <a class="reference internal" href="#classdlib_1_1_feedforward"><span class="std std-ref">Feedforward</span></a> voltage. </p>
+<p><strong>Example</strong> <div class="highlight-cpp notranslate"><div class="highlight"><pre><span></span><span class="c1">// Construct a Feedforward controller</span>
+<span class="n">dlib</span><span class="o">::</span><span class="n">Feedforward</span><span class="w"> </span><span class="n">ff</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="n">dlib</span><span class="o">::</span><span class="n">Feedforward</span><span class="p">({</span><span class="mi">1</span><span class="p">,</span><span class="w"> </span><span class="mi">2</span><span class="p">,</span><span class="w"> </span><span class="mi">3</span><span class="p">});</span>
+
+<span class="c1">// Calculate the voltage needed to coast at 1 m/s</span>
+<span class="n">Quantity</span><span class="o">&lt;</span><span class="n">Volts</span><span class="p">,</span><span class="w"> </span><span class="kt">double</span><span class="o">&gt;</span><span class="w"> </span><span class="n">voltage</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="n">ff</span><span class="p">.</span><span class="n">calculate</span><span class="p">(</span><span class="n">meters_per_second</span><span class="p">(</span><span class="mi">1</span><span class="p">),</span><span class="w"> </span><span class="n">ZERO</span><span class="p">);</span><span class="w"> </span>
+</pre></div>
+</div>
+ </p>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters<span class="colon">:</span></dt>
+<dd class="field-odd"><ul class="simple">
+<li><p><strong>target_velocity</strong> – the target velocity </p></li>
+<li><p><strong>target_accleration</strong> – the target acceleration </p></li>
+</ul>
+</dd>
+<dt class="field-even">Returns<span class="colon">:</span></dt>
+<dd class="field-even"><p>the voltage required for the mechanism to achieve the target velocity and acceleration</p>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="cpp function">
+<dt class="sig sig-object cpp" id="_CPPv4N4dlib11Feedforward9get_gainsEv">
+<span id="_CPPv3N4dlib11Feedforward9get_gainsEv"></span><span id="_CPPv2N4dlib11Feedforward9get_gainsEv"></span><span id="dlib::Feedforward::get_gains"></span><span class="target" id="classdlib_1_1_feedforward_1a6b75e9d706bea3e482025e1329666402"></span><a class="reference internal" href="#_CPPv4N4dlib16FeedforwardGainsE" title="dlib::FeedforwardGains"><span class="n"><span class="pre">FeedforwardGains</span></span></a><span class="w"> </span><span class="sig-name descname"><span class="n"><span class="pre">get_gains</span></span></span><span class="sig-paren">(</span><span class="sig-paren">)</span><a class="headerlink" href="#_CPPv4N4dlib11Feedforward9get_gainsEv" title="Link to this definition">¶</a><br /></dt>
+<dd><p>Get <a class="reference internal" href="#classdlib_1_1_feedforward"><span class="std std-ref">Feedforward</span></a> Gains. </p>
+<p><strong>Example</strong> <div class="highlight-cpp notranslate"><div class="highlight"><pre><span></span><span class="c1">// Construct a Feedforward controller</span>
+<span class="n">dlib</span><span class="o">::</span><span class="n">Feedforward</span><span class="w"> </span><span class="n">ff</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="n">dlib</span><span class="o">::</span><span class="n">Feedforward</span><span class="p">({</span><span class="mi">1</span><span class="p">,</span><span class="w"> </span><span class="mi">2</span><span class="p">,</span><span class="w"> </span><span class="mi">3</span><span class="p">});</span>
+
+<span class="c1">// Get the Feedforward gains</span>
+<span class="n">dlib</span><span class="o">::</span><span class="n">FeedforwardGains</span><span class="w"> </span><span class="n">gains</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="n">ff</span><span class="p">.</span><span class="n">get_gains</span><span class="p">();</span>
+</pre></div>
+</div>
+ </p>
+<dl class="field-list simple">
+<dt class="field-odd">Returns<span class="colon">:</span></dt>
+<dd class="field-odd"><p>the current gains for the feedforward controller</p>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="cpp function">
+<dt class="sig sig-object cpp" id="_CPPv4N4dlib11Feedforward9set_gainsE16FeedforwardGains">
+<span id="_CPPv3N4dlib11Feedforward9set_gainsE16FeedforwardGains"></span><span id="_CPPv2N4dlib11Feedforward9set_gainsE16FeedforwardGains"></span><span id="dlib::Feedforward::set_gains__FeedforwardGains"></span><span class="target" id="classdlib_1_1_feedforward_1a0ff8c1cf5109c5fcd6004710860edd94"></span><span class="kt"><span class="pre">void</span></span><span class="w"> </span><span class="sig-name descname"><span class="n"><span class="pre">set_gains</span></span></span><span class="sig-paren">(</span><a class="reference internal" href="#_CPPv4N4dlib16FeedforwardGainsE" title="dlib::FeedforwardGains"><span class="n"><span class="pre">FeedforwardGains</span></span></a><span class="w"> </span><span class="n sig-param"><span class="pre">new_gains</span></span><span class="sig-paren">)</span><a class="headerlink" href="#_CPPv4N4dlib11Feedforward9set_gainsE16FeedforwardGains" title="Link to this definition">¶</a><br /></dt>
+<dd><p>Set <a class="reference internal" href="#classdlib_1_1_feedforward"><span class="std std-ref">Feedforward</span></a> gains. </p>
+<p><strong>Example</strong> <div class="highlight-cpp notranslate"><div class="highlight"><pre><span></span><span class="c1">// Construct a Feedforward controller</span>
+<span class="n">dlib</span><span class="o">::</span><span class="n">Feedforward</span><span class="w"> </span><span class="n">ff</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="n">dlib</span><span class="o">::</span><span class="n">Feedforward</span><span class="p">({</span><span class="mi">1</span><span class="p">,</span><span class="w"> </span><span class="mi">2</span><span class="p">,</span><span class="w"> </span><span class="mi">3</span><span class="p">});</span>
+
+<span class="c1">// Set the Feedforward gains</span>
+<span class="n">ff</span><span class="p">.</span><span class="n">set_gains</span><span class="p">({</span><span class="mi">4</span><span class="p">,</span><span class="w"> </span><span class="mi">5</span><span class="p">,</span><span class="w"> </span><span class="mi">6</span><span class="p">});</span>
+</pre></div>
+</div>
+ </p>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters<span class="colon">:</span></dt>
+<dd class="field-odd"><p><strong>new_gains</strong> – the new gains for the feedforward controller</p>
+</dd>
+</dl>
+</dd></dl>
+
+</div>
+</dd></dl>
+
+<dl class="cpp struct">
+<dt class="sig sig-object cpp" id="_CPPv4N4dlib16FeedforwardGainsE">
+<span id="_CPPv3N4dlib16FeedforwardGainsE"></span><span id="_CPPv2N4dlib16FeedforwardGainsE"></span><span id="dlib::FeedforwardGains"></span><span class="target" id="structdlib_1_1_feedforward_gains"></span><span class="k"><span class="pre">struct</span></span><span class="w"> </span><span class="sig-name descname"><span class="n"><span class="pre">FeedforwardGains</span></span></span><a class="headerlink" href="#_CPPv4N4dlib16FeedforwardGainsE" title="Link to this definition">¶</a><br /></dt>
+<dd><p>The gains for a simple motor feedforward controller. </p>
+<div class="breathe-sectiondef docutils container">
+<p class="breathe-sectiondef-title rubric" id="breathe-section-title-public-members">Public Members</p>
+<dl class="cpp var">
+<dt class="sig sig-object cpp" id="_CPPv4N4dlib16FeedforwardGains2ksE">
+<span id="_CPPv3N4dlib16FeedforwardGains2ksE"></span><span id="_CPPv2N4dlib16FeedforwardGains2ksE"></span><span id="dlib::FeedforwardGains::ks__double"></span><span class="target" id="structdlib_1_1_feedforward_gains_1a189cb35d422a4de220fe002b98bff755"></span><span class="kt"><span class="pre">double</span></span><span class="w"> </span><span class="sig-name descname"><span class="n"><span class="pre">ks</span></span></span><span class="w"> </span><span class="p"><span class="pre">=</span></span><span class="w"> </span><span class="m"><span class="pre">0</span></span><a class="headerlink" href="#_CPPv4N4dlib16FeedforwardGains2ksE" title="Link to this definition">¶</a><br /></dt>
+<dd><p>The the voltage needed to overcome static friction </p>
+</dd></dl>
+
+<dl class="cpp var">
+<dt class="sig sig-object cpp" id="_CPPv4N4dlib16FeedforwardGains2kvE">
+<span id="_CPPv3N4dlib16FeedforwardGains2kvE"></span><span id="_CPPv2N4dlib16FeedforwardGains2kvE"></span><span id="dlib::FeedforwardGains::kv__double"></span><span class="target" id="structdlib_1_1_feedforward_gains_1a12719c6d3801277080236f8c096df11d"></span><span class="kt"><span class="pre">double</span></span><span class="w"> </span><span class="sig-name descname"><span class="n"><span class="pre">kv</span></span></span><span class="w"> </span><span class="p"><span class="pre">=</span></span><span class="w"> </span><span class="m"><span class="pre">0</span></span><a class="headerlink" href="#_CPPv4N4dlib16FeedforwardGains2kvE" title="Link to this definition">¶</a><br /></dt>
+<dd><p>The voltage needed to cruise at a constant velocity while overcoming back EMF and any other movement induced friction </p>
+</dd></dl>
+
+<dl class="cpp var">
+<dt class="sig sig-object cpp" id="_CPPv4N4dlib16FeedforwardGains2kaE">
+<span id="_CPPv3N4dlib16FeedforwardGains2kaE"></span><span id="_CPPv2N4dlib16FeedforwardGains2kaE"></span><span id="dlib::FeedforwardGains::ka__double"></span><span class="target" id="structdlib_1_1_feedforward_gains_1a792d62e19c4af373b312f68f8b0babf4"></span><span class="kt"><span class="pre">double</span></span><span class="w"> </span><span class="sig-name descname"><span class="n"><span class="pre">ka</span></span></span><span class="w"> </span><span class="p"><span class="pre">=</span></span><span class="w"> </span><span class="m"><span class="pre">0</span></span><a class="headerlink" href="#_CPPv4N4dlib16FeedforwardGains2kaE" title="Link to this definition">¶</a><br /></dt>
+<dd><p>The voltage needed to induce a given acceleration </p>
+</dd></dl>
+
+</div>
+</dd></dl>
+
+<dl class="cpp class">
+<dt class="sig sig-object cpp" id="_CPPv4I0EN4dlib16ErrorTimeSettlerE">
+<span id="_CPPv3I0EN4dlib16ErrorTimeSettlerE"></span><span id="_CPPv2I0EN4dlib16ErrorTimeSettlerE"></span><span class="k"><span class="pre">template</span></span><span class="p"><span class="pre">&lt;</span></span><span class="k"><span class="pre">typename</span></span><span class="w"> </span><span class="sig-name descname"><span class="n"><span class="pre">Units</span></span></span><span class="p"><span class="pre">&gt;</span></span><br /><span class="target" id="classdlib_1_1_error_time_settler"></span><span class="k"><span class="pre">class</span></span><span class="w"> </span><span class="sig-name descname"><span class="n"><span class="pre">ErrorTimeSettler</span></span></span><a class="headerlink" href="#_CPPv4I0EN4dlib16ErrorTimeSettlerE" title="Link to this definition">¶</a><br /></dt>
+<dd><div class="breathe-sectiondef docutils container">
+<p class="breathe-sectiondef-title rubric" id="breathe-section-title-public-functions">Public Functions</p>
+<dl class="cpp function">
+<dt class="sig sig-object cpp" id="_CPPv4N4dlib16ErrorTimeSettler10is_settledEN2au8QuantityI5UnitsdEEN2au8QuantityIN2au7SecondsEdEE">
+<span id="_CPPv3N4dlib16ErrorTimeSettler10is_settledEN2au8QuantityI5UnitsdEEN2au8QuantityIN2au7SecondsEdEE"></span><span id="_CPPv2N4dlib16ErrorTimeSettler10is_settledEN2au8QuantityI5UnitsdEEN2au8QuantityIN2au7SecondsEdEE"></span><span id="dlib::ErrorTimeSettler::is_settled__au::Quantity:Units.double:.au::Quantity:au::Seconds.double:"></span><span class="target" id="classdlib_1_1_error_time_settler_1a7e74b5131c4647fafc384e8c2823f895"></span><span class="k"><span class="pre">inline</span></span><span class="w"> </span><span class="kt"><span class="pre">bool</span></span><span class="w"> </span><span class="sig-name descname"><span class="n"><span class="pre">is_settled</span></span></span><span class="sig-paren">(</span>
+
+<dl>
+<dd><span class="n"><span class="pre">au</span></span><span class="p"><span class="pre">::</span></span><span class="n"><span class="pre">Quantity</span></span><span class="p"><span class="pre">&lt;</span></span><a class="reference internal" href="#_CPPv4I0EN4dlib16ErrorTimeSettlerE" title="dlib::ErrorTimeSettler::Units"><span class="n"><span class="pre">Units</span></span></a><span class="p"><span class="pre">,</span></span><span class="w"> </span><span class="kt"><span class="pre">double</span></span><span class="p"><span class="pre">&gt;</span></span><span class="w"> </span><span class="n sig-param"><span class="pre">error</span></span>,</dd>
+<dd><span class="n"><span class="pre">au</span></span><span class="p"><span class="pre">::</span></span><span class="n"><span class="pre">Quantity</span></span><span class="p"><span class="pre">&lt;</span></span><span class="n"><span class="pre">au</span></span><span class="p"><span class="pre">::</span></span><span class="n"><span class="pre">Seconds</span></span><span class="p"><span class="pre">,</span></span><span class="w"> </span><span class="kt"><span class="pre">double</span></span><span class="p"><span class="pre">&gt;</span></span><span class="w"> </span><span class="n sig-param"><span class="pre">period</span></span>,</dd>
+</dl>
+
+<span class="sig-paren">)</span><a class="headerlink" href="#_CPPv4N4dlib16ErrorTimeSettler10is_settledEN2au8QuantityI5UnitsdEEN2au8QuantityIN2au7SecondsEdEE" title="Link to this definition">¶</a><br /></dt>
+<dd><p>Check if controller has settled. </p>
+<p><strong>Example</strong> <div class="highlight-cpp notranslate"><div class="highlight"><pre><span></span><span class="n">dlib</span><span class="o">::</span><span class="n">Pid</span><span class="o">&lt;</span><span class="n">Meters</span><span class="o">&gt;</span><span class="w"> </span><span class="n">pid</span><span class="p">({</span><span class="mi">1</span><span class="p">,</span><span class="w"> </span><span class="mi">2</span><span class="p">,</span><span class="w"> </span><span class="mi">3</span><span class="p">});</span>
+
+<span class="c1">// Construct a last_period period</span>
+<span class="n">Quantity</span><span class="o">&lt;</span><span class="n">Seconds</span><span class="p">,</span><span class="w"> </span><span class="kt">double</span><span class="o">&gt;</span><span class="w"> </span><span class="n">last_period</span><span class="p">;</span>
+
+<span class="c1">// Construct an TimeErrorSettler controller</span>
+<span class="n">dlib</span><span class="o">::</span><span class="n">TimeErrorSettler</span><span class="o">&lt;</span><span class="n">Meters</span><span class="o">&gt;</span><span class="w"> </span><span class="n">pid_settler</span><span class="w"> </span><span class="p">{</span>
+<span class="w">   </span><span class="n">meters</span><span class="p">(</span><span class="mf">0.01</span><span class="p">),</span><span class="w">        </span><span class="c1">// the maximum error the pid can settle at</span>
+<span class="w">   </span><span class="n">seconds</span><span class="p">(</span><span class="mf">0.250</span><span class="p">)</span><span class="w">    </span><span class="c1">// the time the Pid needs to remain below the error threshold</span>
+<span class="p">}</span>
+
+<span class="kt">bool</span><span class="w"> </span><span class="n">settled</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="n">pid_settler</span><span class="p">.</span><span class="n">is_settled</span><span class="p">(</span><span class="n">pid</span><span class="p">.</span><span class="n">get_error</span><span class="p">(),</span><span class="w"> </span><span class="n">seconds</span><span class="p">(</span><span class="mf">0.02</span><span class="p">));</span>
+</pre></div>
+</div>
+ </p>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters<span class="colon">:</span></dt>
+<dd class="field-odd"><ul class="simple">
+<li><p><strong>error</strong> – distance from setpoint </p></li>
+<li><p><strong>period</strong> – time since last settle iteration - current time - last time </p></li>
+</ul>
+</dd>
+<dt class="field-even">Returns<span class="colon">:</span></dt>
+<dd class="field-even"><p>if the controller has settled</p>
+</dd>
+</dl>
+</dd></dl>
+
+</div>
+</dd></dl>
+
+<dl class="cpp class">
+<dt class="sig sig-object cpp" id="_CPPv4I0EN4dlib22ErrorDerivativeSettlerE">
+<span id="_CPPv3I0EN4dlib22ErrorDerivativeSettlerE"></span><span id="_CPPv2I0EN4dlib22ErrorDerivativeSettlerE"></span><span class="k"><span class="pre">template</span></span><span class="p"><span class="pre">&lt;</span></span><span class="k"><span class="pre">typename</span></span><span class="w"> </span><span class="sig-name descname"><span class="n"><span class="pre">Units</span></span></span><span class="p"><span class="pre">&gt;</span></span><br /><span class="target" id="classdlib_1_1_error_derivative_settler"></span><span class="k"><span class="pre">class</span></span><span class="w"> </span><span class="sig-name descname"><span class="n"><span class="pre">ErrorDerivativeSettler</span></span></span><a class="headerlink" href="#_CPPv4I0EN4dlib22ErrorDerivativeSettlerE" title="Link to this definition">¶</a><br /></dt>
+<dd><div class="breathe-sectiondef docutils container">
+<p class="breathe-sectiondef-title rubric" id="breathe-section-title-public-functions">Public Functions</p>
+<dl class="cpp function">
+<dt class="sig sig-object cpp" id="_CPPv4N4dlib22ErrorDerivativeSettler10is_settledEN2au8QuantityI5UnitsdEEN2au8QuantityIN2au14TimeDerivativeI5UnitsEEdEE">
+<span id="_CPPv3N4dlib22ErrorDerivativeSettler10is_settledEN2au8QuantityI5UnitsdEEN2au8QuantityIN2au14TimeDerivativeI5UnitsEEdEE"></span><span id="_CPPv2N4dlib22ErrorDerivativeSettler10is_settledEN2au8QuantityI5UnitsdEEN2au8QuantityIN2au14TimeDerivativeI5UnitsEEdEE"></span><span id="dlib::ErrorDerivativeSettler::is_settled__au::Quantity:Units.double:.au::Quantity:au::TimeDerivative:Units:.double:"></span><span class="target" id="classdlib_1_1_error_derivative_settler_1a7bc4da4be24d44fa02277e4a2ffeb9f8"></span><span class="k"><span class="pre">inline</span></span><span class="w"> </span><span class="kt"><span class="pre">bool</span></span><span class="w"> </span><span class="sig-name descname"><span class="n"><span class="pre">is_settled</span></span></span><span class="sig-paren">(</span>
+
+<dl>
+<dd><span class="n"><span class="pre">au</span></span><span class="p"><span class="pre">::</span></span><span class="n"><span class="pre">Quantity</span></span><span class="p"><span class="pre">&lt;</span></span><a class="reference internal" href="#_CPPv4I0EN4dlib22ErrorDerivativeSettlerE" title="dlib::ErrorDerivativeSettler::Units"><span class="n"><span class="pre">Units</span></span></a><span class="p"><span class="pre">,</span></span><span class="w"> </span><span class="kt"><span class="pre">double</span></span><span class="p"><span class="pre">&gt;</span></span><span class="w"> </span><span class="n sig-param"><span class="pre">error</span></span>,</dd>
+<dd><span class="n"><span class="pre">au</span></span><span class="p"><span class="pre">::</span></span><span class="n"><span class="pre">Quantity</span></span><span class="p"><span class="pre">&lt;</span></span><span class="n"><span class="pre">au</span></span><span class="p"><span class="pre">::</span></span><span class="n"><span class="pre">TimeDerivative</span></span><span class="p"><span class="pre">&lt;</span></span><a class="reference internal" href="#_CPPv4I0EN4dlib22ErrorDerivativeSettlerE" title="dlib::ErrorDerivativeSettler::Units"><span class="n"><span class="pre">Units</span></span></a><span class="p"><span class="pre">&gt;</span></span><span class="p"><span class="pre">,</span></span><span class="w"> </span><span class="kt"><span class="pre">double</span></span><span class="p"><span class="pre">&gt;</span></span><span class="w"> </span><span class="n sig-param"><span class="pre">derivative</span></span>,</dd>
+</dl>
+
+<span class="sig-paren">)</span><a class="headerlink" href="#_CPPv4N4dlib22ErrorDerivativeSettler10is_settledEN2au8QuantityI5UnitsdEEN2au8QuantityIN2au14TimeDerivativeI5UnitsEEdEE" title="Link to this definition">¶</a><br /></dt>
+<dd><p>Check if controller has settled. </p>
+<p><strong>Example</strong> <div class="highlight-cpp notranslate"><div class="highlight"><pre><span></span><span class="c1">// Construct a PID controller</span>
+<span class="n">dlib</span><span class="o">::</span><span class="n">Pid</span><span class="o">&lt;</span><span class="n">Meters</span><span class="o">&gt;</span><span class="w"> </span><span class="n">pid</span><span class="p">({</span><span class="mi">1</span><span class="p">,</span><span class="w"> </span><span class="mi">2</span><span class="p">,</span><span class="w"> </span><span class="mi">3</span><span class="p">});</span>
+
+<span class="c1">// Construct an ErrorDerivativeSettler controller</span>
+<span class="n">dlib</span><span class="o">::</span><span class="n">ErrorDerivativeSettler</span><span class="o">&lt;</span><span class="n">Meters</span><span class="o">&gt;</span><span class="w"> </span><span class="n">pid_settler</span><span class="w"> </span><span class="p">{</span>
+<span class="w">    </span><span class="n">meters</span><span class="p">(</span><span class="mf">0.01</span><span class="p">),</span><span class="w">           </span><span class="c1">// error threshold, the maximum error the pid can settle at</span>
+<span class="w">    </span><span class="n">meters_per_second</span><span class="p">(</span><span class="mf">0.01</span><span class="p">)</span><span class="w">  </span><span class="c1">// derivative threshold, the maximum instantaneous error over time the pid can settle at</span>
+<span class="p">}</span>
+
+<span class="kt">bool</span><span class="w"> </span><span class="n">settled</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="n">pid_settler</span><span class="p">.</span><span class="n">is_settled</span><span class="p">(</span><span class="n">pid</span><span class="p">.</span><span class="n">get_error</span><span class="p">(),</span><span class="w"> </span><span class="n">pid</span><span class="p">.</span><span class="n">get_derivative</span><span class="p">());</span>
+</pre></div>
+</div>
+ </p>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters<span class="colon">:</span></dt>
+<dd class="field-odd"><ul class="simple">
+<li><p><strong>error</strong> – distance from setpoint </p></li>
+<li><p><strong>derivative</strong> – velocity </p></li>
+</ul>
+</dd>
+<dt class="field-even">Returns<span class="colon">:</span></dt>
+<dd class="field-even"><p>if the controller has settled</p>
+</dd>
+</dl>
+</dd></dl>
+
+</div>
+</dd></dl>
+
+</section>
+
+        </article>
+      </div>
+      <footer>
+        
+        <div class="related-pages">
+          <a class="next-page" href="kinematics.html">
+              <div class="page-info">
+                <div class="context">
+                  <span>Next</span>
+                </div>
+                <div class="title">Kinematics</div>
+              </div>
+              <svg class="furo-related-icon"><use href="#svg-arrow-right"></use></svg>
+            </a>
+          <a class="prev-page" href="hardware.html">
+              <svg class="furo-related-icon"><use href="#svg-arrow-right"></use></svg>
+              <div class="page-info">
+                <div class="context">
+                  <span>Previous</span>
+                </div>
+                
+                <div class="title">Hardware</div>
+                
+              </div>
+            </a>
+        </div>
+        <div class="bottom-of-page">
+          <div class="left-details">
+            <div class="copyright">
+                Copyright &#169; 2024, Cooper Dean, Cody Zhu, Maddy Scott
+            </div>
+            Made with <a href="https://www.sphinx-doc.org/">Sphinx</a> and <a class="muted-link" href="https://pradyunsg.me">@pradyunsg</a>'s
+            
+            <a href="https://github.com/pradyunsg/furo">Furo</a>
+            
+          </div>
+          <div class="right-details">
+            
+          </div>
+        </div>
+        
+      </footer>
+    </div>
+    <aside class="toc-drawer">
+      
+      
+      <div class="toc-sticky toc-scroll">
+        <div class="toc-title-container">
+          <span class="toc-title">
+            On this page
+          </span>
+        </div>
+        <div class="toc-tree-container">
+          <div class="toc-tree">
+            <ul>
+<li><a class="reference internal" href="#">Control</a><ul>
+<li><a class="reference internal" href="#_CPPv4I0EN4dlib3PidE"><code class="docutils literal notranslate"><span class="pre">Pid</span></code></a><ul>
+<li><a class="reference internal" href="#_CPPv4N4dlib3Pid6targetEN2au8QuantityI5UnitsdEE"><code class="docutils literal notranslate"><span class="pre">Pid::target()</span></code></a></li>
+<li><a class="reference internal" href="#_CPPv4N4dlib3Pid6updateEN2au8QuantityI5UnitsdEEN2au8QuantityIN2au7SecondsEdEE"><code class="docutils literal notranslate"><span class="pre">Pid::update()</span></code></a></li>
+<li><a class="reference internal" href="#_CPPv4N4dlib3Pid9get_gainsEv"><code class="docutils literal notranslate"><span class="pre">Pid::get_gains()</span></code></a></li>
+<li><a class="reference internal" href="#_CPPv4N4dlib3Pid9set_gainsE8PidGains"><code class="docutils literal notranslate"><span class="pre">Pid::set_gains()</span></code></a></li>
+<li><a class="reference internal" href="#_CPPv4N4dlib3Pid9get_errorEv"><code class="docutils literal notranslate"><span class="pre">Pid::get_error()</span></code></a></li>
+<li><a class="reference internal" href="#_CPPv4N4dlib3Pid14get_derivativeEv"><code class="docutils literal notranslate"><span class="pre">Pid::get_derivative()</span></code></a></li>
+<li><a class="reference internal" href="#_CPPv4N4dlib3Pid5get_pEv"><code class="docutils literal notranslate"><span class="pre">Pid::get_p()</span></code></a></li>
+<li><a class="reference internal" href="#_CPPv4N4dlib3Pid5get_iEv"><code class="docutils literal notranslate"><span class="pre">Pid::get_i()</span></code></a></li>
+<li><a class="reference internal" href="#_CPPv4N4dlib3Pid5get_dEv"><code class="docutils literal notranslate"><span class="pre">Pid::get_d()</span></code></a></li>
+</ul>
+</li>
+<li><a class="reference internal" href="#_CPPv4N4dlib8PidGainsE"><code class="docutils literal notranslate"><span class="pre">PidGains</span></code></a><ul>
+<li><a class="reference internal" href="#_CPPv4N4dlib8PidGains2kpE"><code class="docutils literal notranslate"><span class="pre">PidGains::kp</span></code></a></li>
+<li><a class="reference internal" href="#_CPPv4N4dlib8PidGains2kiE"><code class="docutils literal notranslate"><span class="pre">PidGains::ki</span></code></a></li>
+<li><a class="reference internal" href="#_CPPv4N4dlib8PidGains2kdE"><code class="docutils literal notranslate"><span class="pre">PidGains::kd</span></code></a></li>
+</ul>
+</li>
+<li><a class="reference internal" href="#_CPPv4N4dlib11FeedforwardE"><code class="docutils literal notranslate"><span class="pre">Feedforward</span></code></a><ul>
+<li><a class="reference internal" href="#_CPPv4N4dlib11Feedforward9calculateEN2au8QuantityIN2au15MetersPerSecondEdEEN2au8QuantityIN2au22MetersPerSecondSquaredEdEE"><code class="docutils literal notranslate"><span class="pre">Feedforward::calculate()</span></code></a></li>
+<li><a class="reference internal" href="#_CPPv4N4dlib11Feedforward9get_gainsEv"><code class="docutils literal notranslate"><span class="pre">Feedforward::get_gains()</span></code></a></li>
+<li><a class="reference internal" href="#_CPPv4N4dlib11Feedforward9set_gainsE16FeedforwardGains"><code class="docutils literal notranslate"><span class="pre">Feedforward::set_gains()</span></code></a></li>
+</ul>
+</li>
+<li><a class="reference internal" href="#_CPPv4N4dlib16FeedforwardGainsE"><code class="docutils literal notranslate"><span class="pre">FeedforwardGains</span></code></a><ul>
+<li><a class="reference internal" href="#_CPPv4N4dlib16FeedforwardGains2ksE"><code class="docutils literal notranslate"><span class="pre">FeedforwardGains::ks</span></code></a></li>
+<li><a class="reference internal" href="#_CPPv4N4dlib16FeedforwardGains2kvE"><code class="docutils literal notranslate"><span class="pre">FeedforwardGains::kv</span></code></a></li>
+<li><a class="reference internal" href="#_CPPv4N4dlib16FeedforwardGains2kaE"><code class="docutils literal notranslate"><span class="pre">FeedforwardGains::ka</span></code></a></li>
+</ul>
+</li>
+<li><a class="reference internal" href="#_CPPv4I0EN4dlib16ErrorTimeSettlerE"><code class="docutils literal notranslate"><span class="pre">ErrorTimeSettler</span></code></a><ul>
+<li><a class="reference internal" href="#_CPPv4N4dlib16ErrorTimeSettler10is_settledEN2au8QuantityI5UnitsdEEN2au8QuantityIN2au7SecondsEdEE"><code class="docutils literal notranslate"><span class="pre">ErrorTimeSettler::is_settled()</span></code></a></li>
+</ul>
+</li>
+<li><a class="reference internal" href="#_CPPv4I0EN4dlib22ErrorDerivativeSettlerE"><code class="docutils literal notranslate"><span class="pre">ErrorDerivativeSettler</span></code></a><ul>
+<li><a class="reference internal" href="#_CPPv4N4dlib22ErrorDerivativeSettler10is_settledEN2au8QuantityI5UnitsdEEN2au8QuantityIN2au14TimeDerivativeI5UnitsEEdEE"><code class="docutils literal notranslate"><span class="pre">ErrorDerivativeSettler::is_settled()</span></code></a></li>
+</ul>
+</li>
+</ul>
+</li>
+</ul>
+
+          </div>
+        </div>
+      </div>
+      
+      
+    </aside>
+  </div>
+</div><script src="_static/documentation_options.js?v=d45e8c67"></script>
+    <script src="_static/doctools.js?v=9bcbadda"></script>
+    <script src="_static/sphinx_highlight.js?v=dc90522c"></script>
+    <script src="_static/scripts/furo.js?v=5fa4622c"></script>
+    </body>
+</html>

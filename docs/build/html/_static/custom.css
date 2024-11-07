@@ -1,0 +1,4 @@
+.param-list, .param-list li, .param-list li p {
+    display: block !important;
+    margin-bottom: 0.5em;
+}
