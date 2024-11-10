@@ -4,6 +4,7 @@
 #include "dlib/controllers/error_time_settler.hpp"
 #include "dlib/controllers/error_derivative_settler.hpp"
 #include "dlib/dlib.hpp"
+#include "dlib/kinematics/odometry.hpp"
 #include "intake.hpp"
 #include "misc_pneumatics.hpp"
 #include "mogo.hpp"
@@ -78,7 +79,6 @@ Robot(
 			auto error = displacement - reading;
 			auto voltage = move_pid.update(reading, milli(seconds)(10));
 
-			std::cout << "welcome to the loop" << std::endl;
 			std::cout << reading << std::endl;
 			chassis.move_voltage(voltage);
 
@@ -87,67 +87,86 @@ Robot(
 
 		chassis.move(0);
 
-		std::cout << "settled" << std::endl;
-		
 	}
 
 	// Use PID to do a relative movement
-	void move_with_pid_time(Quantity<Inches, double> displacement) {
+	void move_with_pid_time(Quantity<Inches, double> displacement, int max_voltage, double max_time) {
 		auto start_displacement = chassis.average_motor_displacement();
 		auto target_displacement = start_displacement + displacement;
-		auto start_time = pros::millis();
-
-		auto voltage = move_pid.update(start_displacement, milli(seconds)(10));
-		chassis.move_voltage(voltage);
+		auto start_time = pros::millis();	
+		double elapsed_time = 0;
 
 		move_pid.target(target_displacement);
 
-		while (!time_move_settler.is_settled(move_pid.get_error(), milli(seconds)(10))) {
+		while (!time_move_settler.is_settled(move_pid.get_error(), milli(seconds)(10)) && (elapsed_time < max_time)) {
 			auto reading = chassis.average_motor_displacement();
 			auto error = displacement - reading;
 			auto voltage = move_pid.update(reading, milli(seconds)(10));
-
+			if(au::abs(voltage) > milli(volts)(max_voltage)){
+				if(voltage > milli(volts)(0)){
+					voltage = milli(volts)(max_voltage);
+				}
+				else{
+					voltage = -milli(volts)(max_voltage);
+				}
+				
+			}
 			chassis.move_voltage(voltage);
+
+			elapsed_time += 10;
 
 			pros::delay(10);
 		}
 
 		chassis.move(0);
-
-		std::cout << "settled in " << pros::millis() - start_time << " milliseconds." << std::endl;
 		
 	}
 
 
-	void turn_with_pid(Quantity<Degrees, double> heading) {
+	void turn_with_pid(Quantity<Degrees, double> heading, int max_voltage, double max_time) {
 		auto target_heading = heading;
+		double cur_time = pros::millis();
+		double elapsed_time = 0;
 
 		turn_pid.target(target_heading);
 		auto reading = imu.get_rotation();
-		auto voltage = turn_pid.update(reading, milli(seconds)(10));
-		chassis.turn_voltage(voltage);
-		while (!turn_settler.is_settled(turn_pid.get_error(), turn_pid.get_derivative())) {
+		std::cout << "target heading: " << target_heading.in(degrees) << std::endl;
+
+		while (!time_turn_settler.is_settled(turn_pid.get_error(), milli(seconds)(10)) && (elapsed_time < max_time)) {
 			auto reading = imu.get_rotation();
 			auto voltage = turn_pid.update(reading, milli(seconds)(10));
-
+			if(voltage > milli(volts)(max_voltage)){
+				voltage = milli(volts)(max_voltage);
+			}
+			if(au::abs(target_heading.in(degrees)) > 180){
+				std::cout << "inside " << std::endl;
+				voltage = -voltage;
+			}
 			chassis.turn_voltage(voltage);
 
+			elapsed_time += 10;
 			pros::delay(10);
 		}
+
 	}
 
-	void turn_to_point(dlib::Vector2d point) {
-		auto angle = odom.angle_to(point);
+	void turn_to_point(dlib::Vector2d point, bool reverse, int max_voltage = 12000, double max_time = 1000) {
+		auto angle = odom.angle_to(point, reverse);
 		dlib::Pose2d cur_pose = odom.get_position();
-		std::cout << "angle: " << angle << " theta: " << cur_pose.theta << " x: " << cur_pose.x.in(inches) << " y: " << cur_pose.y.in(inches) << " left: " << chassis.left_motors_displacement().in(inches) << " right: " << chassis.right_motors_displacement().in(inches) << std::endl;
-		turn_with_pid(angle);
+
+		turn_with_pid(angle,max_voltage,max_time);
 	}
 
-	void move_to_point(dlib::Vector2d point) {
-		turn_to_point(point);
+	void move_to_point(dlib::Vector2d point, bool reverse, int move_max_voltage = 12000, int turn_max_voltage = 12000, double max_time = 1000) {
+		turn_to_point(point, reverse,turn_max_voltage, max_time);
 
 		auto displacement = odom.displacement_to(point);
-		move_with_pid_time(displacement);
+		if(reverse){
+			displacement = -displacement;
+		}
+		move_with_pid_time(displacement,move_max_voltage, max_time);
+		dlib::Pose2d pose = odom.get_position();
+		std::cout << "x: " << pose.x.in(inches) << " y: " << pose.y.in(inches) << " theta: " << pose.theta.in(degrees) << std::endl;
 	}
 
 // Odom task
@@ -186,9 +205,9 @@ dlib::ImuConfig imu_config {
 
 // Adjust these gains
 dlib::PidGains move_pid_gains {
-	1.2, 	// kp, porportional gain
+	1.8, 	// kp, porportional gain
 	0, 	// ki, integral gain
-		0// kd, derivative gain
+		0.1// kd, derivative gain
 };
 
 dlib::ErrorDerivativeSettler<Meters> move_pid_settler {
@@ -197,25 +216,25 @@ dlib::ErrorDerivativeSettler<Meters> move_pid_settler {
 };
 
 dlib::ErrorTimeSettler<Meters> time_move_pid_settler {
-	inches(0.5),		// error threshold, the maximum error the pid can settle at
-	milli(seconds)(200) // derivative threshold, the maximum instantaneous error over time the pid can settle at
+	inches(0.2),		// error threshold, the maximum error the pid can settle at
+	milli(seconds)(100) // derivative threshold, the maximum instantaneous error over time the pid can settle at
 };
 
 // Adjust these gains
 dlib::PidGains turn_pid_gains {
-	1.35, 	// kp, porportional gain
+	1.15, 	// kp, porportional gain
 	0, 	// ki, integral gain
-	.073	// kd, derivative gain
+	.088	// kd, derivative gain
 };
 
 dlib::ErrorDerivativeSettler<Degrees> turn_pid_settler {
-	degrees(0.5),		// error threshold, the maximum error the pid can settle at
+	degrees(1),		// error threshold, the maximum error the pid can settle at
 	degrees_per_second(0.1)	// derivative threshold, the maximum instantaneous error over time the pid can settle at
 };
 
 dlib::ErrorTimeSettler<Degrees> time_turn_pid_settler {
 	degrees(1),		// error threshold, the maximum error the pid can settle at
-	milli(seconds)(200) // derivative threshold, the maximum instantaneous error over time the pid can settle at
+	milli(seconds)(100) // derivative threshold, the maximum instantaneous error over time the pid can settle at
 };
 
 // init robot + subsystems
@@ -244,7 +263,7 @@ Intake intake(
 // the mogo pneumatic will be included inside of this class.
 Mogo mogo(
 	'H',
-	true
+	false
 );
 
 // Lift
@@ -258,16 +277,96 @@ Lift lift(
 // any miscellaneous pneumatics will be put here
 MiscPneumatics misc_pneumatics(
 	'G',
-	true,
+	false,
 	'E',
+	false,
+	'C',
 	false
 );
+
+void blue_awp(){
+	double cur_time = pros::millis();
+	// Try a PID movement!
+	// Move to Alliance Stake
+	robot.move_to_point({inches(-15), inches(0)}, true, 12000, 12000, 750);
+	robot.move_to_point({inches(-15), inches(6)}, true, 12000, 12000, 600);
+	
+	// Intake onto alliance stake
+	intake.max_intake();
+	pros::delay(450);
+
+	// Move to safe Mogo
+	robot.move_to_point({inches(-15.5), inches(-5)}, false, 12000, 12000,1000);
+	robot.move_to_point({inches(10), inches(-35)}, true, 5500, 12000,1500);
+	
+	// Clamp mogo
+	mogo.set_clamp_state(true);
+
+	// Intake safe ring
+	robot.move_to_point({inches(28), inches(-34)}, false, 12000, 8000,750);
+	
+	// move + intake middle rings
+	robot.move_to_point({inches(18), inches(-34)}, true, 12000, 12000,500);
+	pros::delay(300);
+	robot.move_to_point({inches(26), inches(-45)}, false, 12000, 12000,700);
+	robot.move_to_point({inches(30), inches(-47)}, false, 12000, 6000,500);
+
+	// touch bar
+	robot.move_to_point({inches(23), inches(-41)}, true, 12000, 6000,700);
+	pros::delay(1000);
+	lift.lift_move(127);
+	//misc_pneumatics.set_arm_state(true);
+	robot.move_to_point({inches(9), inches(-43)}, false, 12000, 12000,700);
+	// 18 -41 true
+	// wait a sec
+	// raise lift
+	double elapsed_time = pros::millis() - cur_time;
+
+	std::cout << "autonomous finished in " << elapsed_time << std::endl;
+}
+
+void skills(){
+	double cur_time = pros::millis();
+	// intake onto ally stake
+	intake.max_intake();
+	pros::delay(600);
+
+	// move to and clamp mogo
+	robot.move_to_point({inches(13.5), inches(0)}, false, 12000, 12000, 750);
+	robot.move_to_point({inches(14), inches(23)}, true, 5500, 8000, 3000);
+	mogo.set_clamp_state(true);
+
+	// intake ring 1
+	robot.move_to_point({inches(40.6), inches(23)}, false, 9000, 12000, 1500);
+
+	// intake ring 2
+	robot.move_to_point({inches(58), inches(48)}, false, 9000, 12000, 2000);
+	pros::delay(1000);
+
+	// intake ring 3
+	robot.move_to_point({inches(47), inches(46)}, false, 9000, 12000, 1000);
+	
+	// intake rings 4 and 5
+	robot.move_to_point({inches(8), inches(47)}, false, 4000, 12000, 3000);
+	pros::delay(2000);
+
+	// intake ring 6
+	robot.move_to_point({inches(15.5), inches(37.5)}, true, 12000, 12000, 750);
+	robot.move_to_point({inches(14.7), inches(52.3)}, false, 7000, 12000, 2000);
+
+	// drop mogo
+	robot.move_to_point({inches(5), inches(60)}, true, 8000, 8000, 2000);
+	mogo.set_clamp_state(false);
+	double elapsed_time = pros::millis() - cur_time;
+	std::cout << "autonomous skills finished in " << elapsed_time << " milliseconds." << std::endl;
+}
 
 void on_center_button() {}
 
 void initialize() {
 	pros::lcd::initialize();
 	robot.initialize();
+	
 }
 
 void disabled() {}
@@ -275,18 +374,36 @@ void disabled() {}
 void competition_initialize() {}
 
 void autonomous() {
+	double cur_time = pros::millis();
 	robot.chassis.left_motors.raw.tare_position_all();
 	robot.chassis.right_motors.raw.tare_position_all();
 	robot.start_odom();
 
-	// Try a PID movement!
-	robot.move_to_point({inches(0), inches(24)});
+	pros::Task screen_task([&]() {
+        while (true) {
+			dlib::Pose2d pose = robot.odom.get_position();
+            // print robot location to the brain screen
+            pros::lcd::print(0, "X: %f", pose.x.in(inches)); // x
+            pros::lcd::print(1, "Y: %f", pose.y.in(inches)); // y
+            pros::lcd::print(2, "Theta: %f",pose.theta.in(degrees)); // heading
+            // delay to save resources
+            pros::delay(20);
+        }
+	});
 
-}
+	blue_awp();
+
+	
+
+}	
+
+
 
 void opcontrol() {
 	bool mogo_state = true;
+	bool arm_state = false;
 	int range = 16000;
+	robot.start_odom();
 	while(true){
 		// Try arcade drive control!
 		pros::Controller master = pros::Controller(pros::E_CONTROLLER_MASTER);
@@ -320,6 +437,24 @@ void opcontrol() {
 		if(master.get_digital_new_press(pros::E_CONTROLLER_DIGITAL_L2)){
 			lift.lift_toggle = false;
 		}
+
+		if(master.get_digital_new_press(pros::E_CONTROLLER_DIGITAL_Y)){
+			misc_pneumatics.doinker_toggle = !misc_pneumatics.doinker_toggle;
+			misc_pneumatics.set_doinker_state(misc_pneumatics.doinker_toggle);
+		}
+
+		if(master.get_digital(pros::E_CONTROLLER_DIGITAL_X)){
+			misc_pneumatics.set_indexer_state(true);
+		}
+		else{
+			misc_pneumatics.set_indexer_state(false);
+		}
+
+		if(master.get_digital_new_press(pros::E_CONTROLLER_DIGITAL_LEFT)){
+			arm_state = !arm_state;
+			misc_pneumatics.set_arm_state(arm_state);
+		}
+
 
 		lift.lift_range(16000);
 
