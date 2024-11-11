@@ -71,7 +71,6 @@ public:
         au::Quantity<au::Seconds, double> period
     ) {
         auto error = setpoint - reading;
-
         auto delta_time = period;
         auto delta_error = error - last_error;
 
@@ -94,7 +93,7 @@ public:
         );
 
         // update Pid state
-        this->last_error    = error;
+        this->last_error = error;
 
         return au::volts(output);
     };

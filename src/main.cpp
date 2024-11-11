@@ -82,7 +82,7 @@ Robot(
 			std::cout << reading << std::endl;
 			chassis.move_voltage(voltage);
 
-			pros::delay(10);
+			pros::delay(5);
 		}
 
 		chassis.move(0);
@@ -98,10 +98,10 @@ Robot(
 
 		move_pid.target(target_displacement);
 
-		while (!time_move_settler.is_settled(move_pid.get_error(), milli(seconds)(10)) && (elapsed_time < max_time)) {
+		while (!time_move_settler.is_settled(move_pid.get_error(), milli(seconds)(5)) && (elapsed_time < max_time)) {
 			auto reading = chassis.average_motor_displacement();
 			auto error = displacement - reading;
-			auto voltage = move_pid.update(reading, milli(seconds)(10));
+			auto voltage = move_pid.update(reading, milli(seconds)(5));
 			if(au::abs(voltage) > milli(volts)(max_voltage)){
 				if(voltage > milli(volts)(0)){
 					voltage = milli(volts)(max_voltage);
@@ -113,12 +113,12 @@ Robot(
 			}
 			chassis.move_voltage(voltage);
 
-			elapsed_time += 10;
+			elapsed_time += 5;
 
-			pros::delay(10);
+			pros::delay(5);
 		}
-
 		chassis.move(0);
+		pros::delay(10);
 		
 	}
 
@@ -130,29 +130,27 @@ Robot(
 
 		turn_pid.target(target_heading);
 		auto reading = imu.get_rotation();
-		std::cout << "target heading: " << target_heading.in(degrees) << std::endl;
 
-		while (!time_turn_settler.is_settled(turn_pid.get_error(), milli(seconds)(10)) && (elapsed_time < max_time)) {
+		while (!time_turn_settler.is_settled(turn_pid.get_error(), milli(seconds)(5)) && (elapsed_time < max_time)) {
 			auto reading = imu.get_rotation();
-			auto voltage = turn_pid.update(reading, milli(seconds)(10));
+			
+			auto voltage = turn_pid.update(reading, milli(seconds)(5));
 			if(voltage > milli(volts)(max_voltage)){
 				voltage = milli(volts)(max_voltage);
-			}
-			if(au::abs(target_heading.in(degrees)) > 180){
-				std::cout << "inside " << std::endl;
-				voltage = -voltage;
 			}
 			chassis.turn_voltage(voltage);
 
 			elapsed_time += 10;
 			pros::delay(10);
 		}
+		chassis.move(0);
+		//std::cout << "lucas parham should die" << std::endl;
+		pros::delay(10);
 
 	}
 
 	void turn_to_point(dlib::Vector2d point, bool reverse, int max_voltage = 12000, double max_time = 1000) {
 		auto angle = odom.angle_to(point, reverse);
-		dlib::Pose2d cur_pose = odom.get_position();
 
 		turn_with_pid(angle,max_voltage,max_time);
 	}
@@ -165,8 +163,6 @@ Robot(
 			displacement = -displacement;
 		}
 		move_with_pid_time(displacement,move_max_voltage, max_time);
-		dlib::Pose2d pose = odom.get_position();
-		std::cout << "x: " << pose.x.in(inches) << " y: " << pose.y.in(inches) << " theta: " << pose.theta.in(degrees) << std::endl;
 	}
 
 // Odom task
@@ -224,7 +220,7 @@ dlib::ErrorTimeSettler<Meters> time_move_pid_settler {
 dlib::PidGains turn_pid_gains {
 	1.15, 	// kp, porportional gain
 	0, 	// ki, integral gain
-	.088	// kd, derivative gain
+	.039	// kd, derivative gain
 };
 
 dlib::ErrorDerivativeSettler<Degrees> turn_pid_settler {
@@ -234,7 +230,7 @@ dlib::ErrorDerivativeSettler<Degrees> turn_pid_settler {
 
 dlib::ErrorTimeSettler<Degrees> time_turn_pid_settler {
 	degrees(1),		// error threshold, the maximum error the pid can settle at
-	milli(seconds)(100) // derivative threshold, the maximum instantaneous error over time the pid can settle at
+	milli(seconds)(50) // derivative threshold, the maximum instantaneous error over time the pid can settle at
 };
 
 // init robot + subsystems
@@ -284,6 +280,51 @@ MiscPneumatics misc_pneumatics(
 	false
 );
 
+void test(){
+	robot.turn_to_point({inches(-10), inches(0)}, false, 12000, 2000);
+}
+
+void red_awp(){
+	double cur_time = pros::millis();
+	// Try a PID movement!
+	// Move to Alliance Stake
+	robot.move_to_point({inches(-15), inches(0)}, true, 12000, 12000, 750);
+	robot.move_to_point({inches(-15), inches(-6)}, true, 12000, 12000, 600);
+	
+	// Intake onto alliance stake
+	intake.max_intake();
+	pros::delay(450);
+
+	// Move to safe Mogo
+	robot.move_to_point({inches(-15.5), inches(5)}, false, 12000, 12000,1000);
+	robot.move_to_point({inches(10), inches(35)}, true, 5500, 12000,1500);
+	
+	// Clamp mogo
+	mogo.set_clamp_state(true);
+
+	// Intake safe ring
+	robot.move_to_point({inches(32), inches(34)}, false, 12000, 8000,750);
+	
+	// move + intake middle rings
+	robot.move_to_point({inches(18), inches(34)}, true, 12000, 12000,500);
+	pros::delay(300);
+	robot.move_to_point({inches(24), inches(45)}, false, 12000, 12000,800);
+	robot.move_to_point({inches(32), inches(47)}, false, 12000, 6000,800);
+
+	// touch bar
+	robot.move_to_point({inches(23), inches(41)}, true, 12000, 6000,700);
+	pros::delay(750);
+	lift.lift_move(127);
+	//misc_pneumatics.set_arm_state(true);
+	robot.move_to_point({inches(2), inches(43)}, false, 12000, 12000,1000);
+	// 18 -41 true
+	// wait a sec
+	// raise lift
+	double elapsed_time = pros::millis() - cur_time;
+
+	std::cout << "autonomous finished in " << elapsed_time << std::endl;
+}
+
 void blue_awp(){
 	double cur_time = pros::millis();
 	// Try a PID movement!
@@ -303,20 +344,20 @@ void blue_awp(){
 	mogo.set_clamp_state(true);
 
 	// Intake safe ring
-	robot.move_to_point({inches(28), inches(-34)}, false, 12000, 8000,750);
+	robot.move_to_point({inches(32), inches(-34)}, false, 12000, 8000,750);
 	
 	// move + intake middle rings
 	robot.move_to_point({inches(18), inches(-34)}, true, 12000, 12000,500);
 	pros::delay(300);
-	robot.move_to_point({inches(26), inches(-45)}, false, 12000, 12000,700);
-	robot.move_to_point({inches(30), inches(-47)}, false, 12000, 6000,500);
+	robot.move_to_point({inches(24), inches(-45)}, false, 12000, 12000,800);
+	robot.move_to_point({inches(32), inches(-47)}, false, 12000, 6000,800);
 
 	// touch bar
 	robot.move_to_point({inches(23), inches(-41)}, true, 12000, 6000,700);
-	pros::delay(1000);
+	pros::delay(750);
 	lift.lift_move(127);
 	//misc_pneumatics.set_arm_state(true);
-	robot.move_to_point({inches(9), inches(-43)}, false, 12000, 12000,700);
+	robot.move_to_point({inches(2), inches(-43)}, false, 12000, 12000,1000);
 	// 18 -41 true
 	// wait a sec
 	// raise lift
@@ -386,14 +427,15 @@ void autonomous() {
             pros::lcd::print(0, "X: %f", pose.x.in(inches)); // x
             pros::lcd::print(1, "Y: %f", pose.y.in(inches)); // y
             pros::lcd::print(2, "Theta: %f",pose.theta.in(degrees)); // heading
+			std::cout << pose.theta.in(degrees) << std::endl;
             // delay to save resources
             pros::delay(20);
         }
 	});
 
 	blue_awp();
-
-	
+	//skills();
+	//test();
 
 }	
 
