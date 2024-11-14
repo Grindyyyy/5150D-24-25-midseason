@@ -127,7 +127,7 @@ Robot(
 		auto target_heading = heading;
 		double cur_time = pros::millis();
 		double elapsed_time = 0;
-
+.
 		turn_pid.target(target_heading);
 		auto reading = imu.get_rotation();
 
@@ -325,6 +325,10 @@ void red_awp(){
 	std::cout << "autonomous finished in " << elapsed_time << std::endl;
 }
 
+void blue_goal_side(){
+	// -26.5, 0
+}
+
 void blue_awp(){
 	double cur_time = pros::millis();
 	// Try a PID movement!
@@ -357,7 +361,7 @@ void blue_awp(){
 	pros::delay(750);
 	lift.lift_move(127);
 	//misc_pneumatics.set_arm_state(true);
-	robot.move_to_point({inches(2), inches(-43)}, false, 12000, 12000,1000);
+	robot.move_to_point({inches(4), inches(-43)}, false, 12000, 12000,1000);
 	// 18 -41 true
 	// wait a sec
 	// raise lift
