@@ -22,30 +22,13 @@ class Pid {
 public:
     Pid(PidGains gains) : gains(gains) {};
 
-    /**
-     * @brief Set Pid setpoint
-     *
-     * @param setpoint the end goal for the controller
-     * 
-     * @b Example
-     * @code {.cpp}
-     * 
-     * // Construct a Pid controller
-     * dlib::Pid<Meters> pid({1, 2, 3});
-     * 
-     * // Target an example setpoint
-     * move_pid.target(meters(1));
-     * 
-     * @endcode
-    */
-    void target(au::Quantity<Units, double> setpoint) {
-        this->setpoint = setpoint;
-        
+    void reset() {
         this->p = au::ZERO;
         this->i = au::ZERO;
         this->d = au::ZERO;
 
         this->last_error = au::ZERO;
+        this->last_derivative = au::ZERO;
     }
 
     /**
@@ -67,34 +50,47 @@ public:
      * @endcode
     */
     au::Quantity<au::Volts, double> update(
-        au::Quantity<Units, double> reading, 
+        au::Quantity<Units, double> error, 
         au::Quantity<au::Seconds, double> period
     ) {
-        auto error = setpoint - reading;
         auto delta_time = period;
         auto delta_error = error - last_error;
 
+        auto derivative = (delta_error / delta_time);
+        
         // TODO: Integral anti-windup
+        
+        using BaseUnits = au::UnitImpl<au::detail::DimT<Units>>;
         // calculate Pid terms
 
-        this->p = error;
-        this->i = this->i + error* delta_time;
-        this->d = (delta_error / delta_time);
+        if (p.in(BaseUnits{}) < 0 && this->i.in(au::TimeIntegral<BaseUnits>{}) > 0) {
+            this->i = au::ZERO;
+        } else if (p.in(BaseUnits{}) > 0 && this->i.in(au::TimeIntegral<BaseUnits>{}) < 0) {
+            this->i = au::ZERO;
+        }
+
+        this->p = error * this->gains.kp;
+        this->i = this->i + error * delta_time * this->gains.ki;
+        this->d = (delta_error / delta_time) * this->gains.kd;
 
         // TODO: Using `in` this way means that Pid constants are affected by the choice of unit
         // eg. gains in Pid<Centi<Meters>> will effectively be 100x the gains in Pid<Meters>
         // is there a way to avoid this?
 
+        // this might fix the issue, awaiting testing
+        using BaseUnits = au::UnitImpl<au::detail::DimT<Units>>;
+
         double output = std::clamp(
-            this->p.in(Units{}) * this->gains.kp
-            + this->i.in(au::TimeIntegral<Units>{}) * this->gains.ki 
-            + this->d.in(au::TimeDerivative<Units>{}) * this->gains.kd, 
+            this->p.in(BaseUnits{})
+            + this->i.in(au::TimeIntegral<BaseUnits>{})
+            + this->d.in(au::TimeDerivative<BaseUnits>{}), 
             -12.0, 12.0
         );
 
         // update Pid state
-        this->last_error = error;
-
+        this->last_error      = error;
+        this->last_derivative = derivative;
+        
         return au::volts(output);
     };
 
@@ -175,7 +171,7 @@ public:
      * @endcode
     */
     au::Quantity<au::TimeDerivative<Units>, double> get_derivative() {
-        return this->d;
+        return this->last_derivative;
     }
 protected:
     PidGains gains;
@@ -184,8 +180,8 @@ protected:
     au::Quantity<au::TimeIntegral<Units>, double> i = au::ZERO;
     au::Quantity<au::TimeDerivative<Units>, double> d = au::ZERO;
 
-    au::Quantity<Units, double> setpoint;
     au::Quantity<Units, double> last_error;
+    au::Quantity<au::TimeDerivative<Units>, double> last_derivative;
 };
 
 }

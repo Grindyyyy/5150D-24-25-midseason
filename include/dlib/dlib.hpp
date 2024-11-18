@@ -14,3 +14,5 @@
 
 #include "dlib/trajectories/profile_setpoint.hpp"
 #include "dlib/trajectories/trapezoid_profile.hpp"
+
+#include "dlib/utilities/error_calculation.hpp"

@@ -64,14 +64,17 @@ public:
         // - we are below the error threshold
         // - we have been below the threshold for the settle time
         if (this->is_settling && this->time_below_threshold >= this->settle_time && absolute_error <= this->error_threshold) {
-            this->is_settling = false;
-            this->time_below_threshold = au::seconds(0);
             return true;
+
         } else {
             return false;
         }
     }
 
+    void reset() {
+        this->is_settling = false;
+        this->time_below_threshold = au::ZERO;
+    }
 protected:
     bool is_settling;
     au::Quantity<Units, double> error_threshold;

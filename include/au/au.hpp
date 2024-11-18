@@ -6801,14 +6801,26 @@ constexpr auto meters_per_second_squared = meters_per_second / second;
 using DegreesPerSecond = decltype(Degrees{} / Seconds{});
 constexpr auto degrees_per_second = degrees / second;
 
+using DegreesPerSecondSquared = decltype(Degrees{} / Seconds{} / Seconds{});
+constexpr auto degrees_per_second_squared = degrees / second / second;
+
 using RadiansPerSecond = decltype(Radians{} / Seconds{});
 constexpr auto radians_per_second = radians / second;
+
+using RadiansPerSecondSquared = decltype(Radians{} / Seconds{} / Seconds{});
+constexpr auto radians_per_second_squared = radians / second / second;
+
+using Rps = decltype(Revolutions{} / Seconds{});
+constexpr auto rps = revolutions / second;
 
 using Rpm = decltype(Revolutions{} / Minutes{});
 constexpr auto rpm = revolutions / minute;
 
 template<typename Unit>
 using TimeDerivative = decltype(Unit{} / Seconds{});
+
+template<typename Unit>
+using Time2ndDerivative = decltype(Unit{} / Seconds{} / Seconds{});
 
 template<typename Unit>
 using TimeIntegral = decltype(Unit{} * Seconds{});

@@ -2,7 +2,7 @@
 #include "au/au.hpp"
 #include "motor_group.hpp"
 #include "pros/abstract_motor.hpp"
-#include "pros/llemu.hpp"
+#include "pros/motors.h"
 
 namespace dlib {
 
@@ -15,6 +15,7 @@ ChassisConfig::ChassisConfig(
 )  :
     left_motors(left_motors_config),
     right_motors(right_motors_config),
+    drive_gearset(drive_gearset),
     total_rpm(total_rpm),
     wheel_diameter(wheel_diameter) {
 
@@ -27,13 +28,15 @@ ChassisConfig::ChassisConfig(
 };
 
 Chassis::Chassis(
-    ChassisConfig& config
+    ChassisConfig config
 ) : 
     left_motors(config.left_motors), 
     right_motors(config.right_motors), 
+    drive_gearset(config.drive_gearset),
     base_rpm(config.base_rpm),
     total_rpm(config.total_rpm), 
     wheel_diameter(config.wheel_diameter) {
+    
 
 }
 
@@ -43,6 +46,9 @@ void Chassis::initialize() {
 
     left_motors.raw.set_encoder_units_all(pros::MotorUnits::rotations);
     right_motors.raw.set_encoder_units_all(pros::MotorUnits::rotations);
+
+    left_motors.raw.set_gearing_all(this->drive_gearset);
+    right_motors.raw.set_gearing_all(this->drive_gearset);
 }
 
 void Chassis::move(double power) {
@@ -70,7 +76,14 @@ void Chassis::arcade(double power, double turn) {
     this->right_motors.send(power + turn);
 }
 
+void Chassis::brake() {
+    this->left_motors.raw.brake();
+    this->right_motors.raw.brake();
+}
+
 au::Quantity<au::Meters, double> Chassis::revolutions_to_displacement(au::Quantity<au::Revolutions, double> revolutions) {
+    // TODO: move the motor position -> wheel position conversions to a dedicated kinematics class
+
     // not sure if there's a unit-safe way to do this
     auto wheel_circumference = this->wheel_diameter.in(au::meters) * M_PI;
     auto linear_distance = 
@@ -82,12 +95,14 @@ au::Quantity<au::Meters, double> Chassis::revolutions_to_displacement(au::Quanti
 }
 
 au::Quantity<au::MetersPerSecond, double> Chassis::rpm_to_velocity(au::Quantity<au::Rpm, double> rpm) {
+    // TODO: move the motor velocity -> wheel velocity conversions to a dedicated kinematics class
+    
     // not sure if there's a unit-safe way to do this
     auto wheel_circumference = this->wheel_diameter.in(au::meters) * M_PI;
     auto linear_velocity = 
-        (rpm.in(au::rpm) 
+        (rpm.in(au::rps) 
         * wheel_circumference 
-        * (this->total_rpm / this->base_rpm)) / 60.0;
+        * (this->total_rpm / this->base_rpm));
     
     return au::meters_per_second(linear_velocity);
 }
@@ -110,6 +125,26 @@ au::Quantity<au::Meters, double> Chassis::right_motors_displacement() {
 
 au::Quantity<au::Meters, double> Chassis::average_motor_displacement() {
     return (this->left_motors_displacement() + this->right_motors_displacement()) / 2.0;
+}
+
+au::Quantity<au::MetersPerSecond, double> Chassis::left_motors_velocity() {
+    auto rpm = this->left_motors.get_velocity();
+    auto velocity = 
+        this->rpm_to_velocity(rpm);
+    
+    return velocity;
+}
+
+au::Quantity<au::MetersPerSecond, double> Chassis::right_motors_velocity() {
+    auto rpm = this->right_motors.get_velocity();
+    auto velocity = 
+        this->rpm_to_velocity(rpm);
+
+    return velocity;
+}
+
+au::Quantity<au::MetersPerSecond, double> Chassis::average_motor_velocity() {
+    return (this->left_motors_velocity() + this->left_motors_velocity()) / 2.0;
 }
 
 }

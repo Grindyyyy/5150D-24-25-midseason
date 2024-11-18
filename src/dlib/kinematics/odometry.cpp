@@ -1,8 +1,6 @@
 #include "dlib/kinematics/odometry.hpp"
 #include "au/au.hpp"
-#include "pros/llemu.hpp"
 #include <mutex>
-#include <iostream>
 
 namespace dlib {
 
@@ -18,39 +16,43 @@ Pose2d::Pose2d(
 
 }
 
-Odometry::Odometry() {
+Odometry::Odometry(
+    au::Quantity<au::Meters, double> horizontal_wheel_offset
+) : horizontal_wheel_offset(horizontal_wheel_offset) 
+{
 
 }
 
 void Odometry::update(
     au::Quantity<au::Meters, double> left_displacement, 
     au::Quantity<au::Meters, double> right_displacement, 
+    au::Quantity<au::Meters, double> horizontal_displacement,
     au::Quantity<au::Degrees, double> rotation
 ) {
-    //std::lock_guard<pros::Mutex> guard(mutex);
+    std::lock_guard<pros::Mutex> guard(this->mutex);
 
-    auto current_forward = (left_displacement + right_displacement) / 2.0;
+    auto current_forward = (left_displacement + right_displacement) / 2;
+    auto current_horizontal = horizontal_displacement;
     auto current_theta = rotation.as(au::radians);
 
     auto delta_forward = current_forward - previous_forward;
-    
+    auto delta_horizontal = current_horizontal - previous_horizontal;
     auto delta_theta = current_theta - previous_theta;
 
     auto local_x = delta_forward;
-    auto local_y = au::meters(0.0); // no horizontal tracking wheel so this will always be 0
+    auto local_y = delta_horizontal;
 
     // if delta_theta is 0, the robot moved in a straight line
     if (delta_theta != au::radians(0)) {
         // arc_to_line * radius = chord_length
-        double arc_to_line = 2 * au::sin(delta_theta / 2.0);
+        double arc_to_line = 2 * au::sin(delta_theta / 2);
         local_x = arc_to_line * (local_x / delta_theta.in(au::radians));
-        local_y = arc_to_line * (local_y / delta_theta.in(au::radians));
+        local_y = arc_to_line * (local_y / delta_theta.in(au::radians) + this->horizontal_wheel_offset);
     }
 
-
     // the average heading of the movement, simplified from (self.theta + (self.theta + delta_theta)) / 2
-    auto average_theta = position.theta + delta_theta / 2.0;
-    
+    auto average_theta = position.theta + delta_theta / 2;
+
     // rotate the local movement into the global frame
     auto global_x = position.x + (local_x * au::cos(average_theta) - local_y * au::sin(average_theta));
     auto global_y = position.y + (local_y * au::cos(average_theta) + local_x * au::sin(average_theta));
@@ -58,6 +60,7 @@ void Odometry::update(
 
     // update odometry state
     previous_forward = current_forward;
+    previous_horizontal = current_horizontal;
     previous_theta = current_theta;
 
     position = Pose2d {global_x,global_y,global_theta};

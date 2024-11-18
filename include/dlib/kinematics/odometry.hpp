@@ -28,11 +28,12 @@ struct Pose2d {
 
 class Odometry {
 public:
-    Odometry();
+    Odometry(au::Quantity<au::Meters, double> horizontal_wheel_offset = au::ZERO);
 
     void update(
         au::Quantity<au::Meters, double> left_displacement,
         au::Quantity<au::Meters, double> right_displacement,
+        au::Quantity<au::Meters, double> horizontal_displacement,
         au::Quantity<au::Degrees, double> heading
     );
 
@@ -44,8 +45,12 @@ public:
 
 protected:
     Pose2d position = Pose2d(au::ZERO, au::ZERO, au::ZERO);
+    
     au::Quantity<au::Meters, double> previous_forward = au::ZERO;
+    au::Quantity<au::Meters, double> previous_horizontal = au::ZERO;
     au::Quantity<au::Radians, double> previous_theta = au::ZERO;
+
+    au::Quantity<au::Meters, double> horizontal_wheel_offset = au::ZERO;
 
     pros::Mutex mutex{};
 };

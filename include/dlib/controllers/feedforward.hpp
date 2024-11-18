@@ -18,12 +18,12 @@ struct FeedforwardGains {
     double ka = 0;
 };
 
-// TODO: Feedforward should also be generic over units
-
+template<typename Units>
 class Feedforward {
-    
 public:
-    Feedforward(FeedforwardGains gains_settings);
+    Feedforward(FeedforwardGains gains) : gains(gains) {
+
+    }
 
     /**
      * @brief Calculate Feedforward voltage
@@ -44,9 +44,17 @@ public:
      * @endcode
     */
     au::Quantity<au::Volts, double> calculate(
-        au::Quantity<au::MetersPerSecond, double> target_velocity, 
-        au::Quantity<au::MetersPerSecondSquared, double> target_acceleration = au::ZERO
-    );
+    au::Quantity<au::TimeDerivative<Units>, double> target_velocity, 
+    au::Quantity<au::Time2ndDerivative<Units>, double> target_acceleration
+    ) {
+        using BaseUnits = au::UnitImpl<au::detail::DimT<Units>>;
+
+        auto s = std::copysign(gains.ks, target_velocity.in(au::TimeDerivative<BaseUnits>{}));
+        auto v = gains.kv * target_velocity.in(au::TimeDerivative<BaseUnits>{});
+        auto a = gains.ka * target_acceleration.in(au::Time2ndDerivative<BaseUnits>{});
+
+        return au::volts(s + v + a);
+    }
 
     /**
      * @brief Get Feedforward Gains
@@ -64,7 +72,9 @@ public:
      * 
      * @endcode
     */
-    FeedforwardGains get_gains();
+    FeedforwardGains get_gains() {
+        return this->gains;
+    }
 
     /**
      * @brief Set Feedforward gains
@@ -82,7 +92,9 @@ public:
      * 
      * @endcode
     */
-    void set_gains(FeedforwardGains new_gains);
+    void set_gains(FeedforwardGains new_gains) {
+        this->gains = new_gains;
+    }
 
 protected:
     FeedforwardGains gains;

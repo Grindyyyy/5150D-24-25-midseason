@@ -40,11 +40,20 @@ public:
      * @endcode
     */
     bool is_settled(au::Quantity<Units, double> error, au::Quantity<au::TimeDerivative<Units>, double> derivative) {
+        
+        // if the error and derivative are both exactly zero it is almost certain the pid has not been called yet
+        if (error == au::ZERO && derivative == au::ZERO) {
+            return false;
+        }
 
         // user passes in error & derivative from the pid read methods
         // if it falls within the range given when the ErrorDerivativeSettler object is created
         // it will return true
-        return (au::abs(error) < error_threshold && au::abs(derivative) < derivative_threshold);
+        return au::abs(error) <= error_threshold && au::abs(derivative) <= derivative_threshold;
+    }
+
+    void reset() {
+        
     }
 protected:
     au::Quantity<Units, double> error_threshold; // The error range that is acceptable
