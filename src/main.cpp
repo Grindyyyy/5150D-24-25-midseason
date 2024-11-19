@@ -1,65 +1,36 @@
 #include "main.h"
-#include "au/au.hpp"
-#include "dlib/controllers/feedforward.hpp"
-#include "dlib/controllers/pid.hpp"
-#include "dlib/controllers/error_time_settler.hpp"
-#include "dlib/controllers/error_derivative_settler.hpp"
 #include "dlib/dlib.hpp"
 #include "dlib/kinematics/odometry.hpp"
-#include "dlib/trajectories/trapezoid_profile.hpp"
-#include "dlib/utilities/error_calculation.hpp"
 #include "intake.hpp"
 #include "misc_pneumatics.hpp"
 #include "mogo.hpp"
 #include "lift.hpp"
 #include "pros/abstract_motor.hpp"
-#include "pros/llemu.hpp"
 #include "pros/misc.h"
+#include <mutex>
 
 using namespace au;
 
 // Robot class
 class Robot {
-	public:
-		dlib::Chassis chassis;
-		dlib::Imu imu;
+public:
+	dlib::Chassis chassis;
+	dlib::Imu imu;
 
-		dlib::Odometry odom;
-		std::unique_ptr<pros::Task> odom_updater;
+	Intake intake;
+	Mogo mogo;
+	Lift lift;
+	MiscPneumatics pneumatics;
 
-		dlib::Pid<Inches> move_pid;
-		dlib::ErrorDerivativeSettler<Meters> move_settler;
-		dlib::ErrorTimeSettler<Meters> time_move_settler;
+	dlib::Pid<Inches> move_pid;
+	dlib::ErrorDerivativeSettler<Meters> move_settler;
 
-		dlib::Pid<Degrees> turn_pid;
-		dlib::ErrorDerivativeSettler<Degrees> turn_settler;
-		dlib::ErrorTimeSettler<Degrees> time_turn_settler;
+	dlib::Pid<Degrees> turn_pid;
+	dlib::ErrorDerivativeSettler<Degrees> turn_settler;
 
-		dlib::Feedforward<Meters> move_ffwd;
-
-Robot(
-	dlib::ChassisConfig chassis_config, 
-	dlib::ImuConfig imu_config,
-	dlib::PidGains move_pid_gains,
-	dlib::ErrorTimeSettler<Meters> time_move_settler,
-	dlib::ErrorDerivativeSettler<Meters> move_settler,
-	dlib::PidGains turn_pid_gains,
-	dlib::ErrorTimeSettler<Degrees> time_turn_settler,
-	dlib::ErrorDerivativeSettler<Degrees> turn_settler,
-	dlib::Feedforward<Meters> move_ffwd
-	) : 
-	chassis(chassis_config), 
-	imu(imu_config),
-	move_pid(move_pid_gains),
-	time_move_settler(time_move_settler),
-	move_settler(move_settler),
-	turn_pid(turn_pid_gains),
-	time_turn_settler(time_turn_settler),
-	turn_settler(turn_settler),
-	move_ffwd(move_ffwd),
-	odom() {
-
-	}
+	dlib::Odometry odom = dlib::Odometry();
+	std::unique_ptr<pros::Task> odom_updater = nullptr;
+	
 
 	void initialize() {
 		chassis.initialize();
@@ -71,18 +42,17 @@ Robot(
 		//start_odom();
 	}
 
-
 	// Use PID to do a relative movement
-	void move_with_pid_time(Quantity<Meters, double> displacement, double max_time, int max_voltage) {
+	void move_with_pid_time(double displacement, double max_time = 99999, int max_voltage = 12000) {
 		auto start_displacement = chassis.average_motor_displacement();
-		auto target_displacement = dlib::relative_target(start_displacement, displacement);
+		auto target_displacement = dlib::relative_target(start_displacement, inches(displacement));
 		auto start_time = pros::millis();	
 		double elapsed_time = 0;
 
 		move_pid.reset();
-		time_move_settler.reset();
+		move_settler.reset();
 
-		while (!time_move_settler.is_settled(move_pid.get_error(), milli(seconds)(5)) /*&& (elapsed_time < max_time)*/) {
+		while (!move_settler.is_settled(move_pid.get_error(), move_pid.get_derivative()) /*&& (elapsed_time < max_time)*/) {
 			auto error = dlib::linear_error(target_displacement, chassis.average_motor_displacement());
 			if (elapsed_time > max_time) {
 				auto brake_volatge = au::copysign(volts(0.9), -error);
@@ -108,55 +78,23 @@ Robot(
 		}
 		std::cout << "settled" << "\n";
 		chassis.move(0);
-	}
-
-
-	// Use PID to do a relative movement
-	void move_pid_ffwd(Quantity<Meters, double> displacement, double max_time, int max_voltage) {
-		auto start_displacement = chassis.average_motor_displacement();
-		
-		auto target_displacement = dlib::relative_target(start_displacement, displacement);
-		auto start_time = pros::millis();	
-		auto elapsed_time = 0;
-
-		auto profile = dlib::TrapezoidProfile<Meters>(meters_per_second_squared(1),meters_per_second(1.4), displacement);
-
-		move_pid.reset();
-		time_move_settler.reset();
-
-		while (profile.stage(milli(seconds)(elapsed_time)) != dlib::TrapezoidProfileStage::Done) /*&& (elapsed_time < max_time)*/ {
-			elapsed_time += 20;
-			auto setpoint = profile.calculate(milli(seconds)(elapsed_time));
-			auto voltage = move_ffwd.calculate(setpoint.velocity, setpoint.acceleration);
-			
-			if (profile.stage(milli(seconds)(elapsed_time)) == dlib::TrapezoidProfileStage::Decelerating) {
-				chassis.move_voltage(volts(0));
-			}
-			
-			
-			chassis.move_voltage(voltage);
-			pros::delay(20);
-			std::cout << elapsed_time << "," << voltage.in(volts) << "," << chassis.average_motor_velocity().in(meters_per_second) << "," << setpoint.velocity.in(meters_per_second) << "\n";
-		}
-
-		chassis.move(0);
 	}	
 
 	// Use PID to do a relative movement
-	void turn_with_pid_time(Quantity<Degrees, double> heading, double max_time, int max_voltage) {
-		auto target_heading = heading;
+	void turn_with_pid_time(double heading, double max_time, int max_voltage) {
+		auto target_heading = degrees(heading);
 
 		auto start_time = pros::millis();	
 		double elapsed_time = 0;	
 
 		turn_pid.reset();
-		time_turn_settler.reset();
+		turn_settler.reset();
 
 		auto voltage = volts(0.0);
 
-		while (!time_turn_settler.is_settled(turn_pid.get_error(), milli(seconds)(20))) {
+		while (!turn_settler.is_settled(turn_pid.get_error(), turn_pid.get_derivative())) {
 
-			auto error = dlib::angular_error(heading, imu.get_rotation());
+			auto error = dlib::angular_error(degrees(heading), imu.get_rotation());
 
 			if (elapsed_time > max_time) {
 				auto brake_volatge = au::copysign(volts(0.9), -error);
@@ -189,26 +127,24 @@ Robot(
 		chassis.right_motors.raw.brake();
 	}
 
-
-	
-
-	void turn_to_point(dlib::Vector2d point, bool reverse, int max_voltage, double max_time) {
+	void turn_to_point(double x, double y, bool reverse = false, double max_time = 15000, int max_voltage = 12000) {
+		auto point = dlib::Vector2d(inches(x), inches(y));
 		auto angle = odom.angle_to(point, reverse);
 
-		turn_with_pid_time(angle,max_time,max_voltage);
+		turn_with_pid_time(angle.in(degrees), max_time,max_voltage);
 	}
 
-	void move_to_point(dlib::Vector2d point, bool reverse, int move_max_voltage, int turn_max_voltage, double max_time = 15000) {
-		turn_to_point(point, reverse,turn_max_voltage, max_time);
-
+	void move_to_point(double x, double y, bool reverse = false, double max_time = 15000, int move_max_voltage = 12000, int turn_max_voltage = 12000) {
+		auto point = dlib::Vector2d(inches(x), inches(y));
+		turn_to_point(x, y, reverse,turn_max_voltage, max_time);
 		auto displacement = odom.displacement_to(point);
 		if(reverse){
 			displacement = -displacement;
 		}
-		move_with_pid_time(displacement,max_time, move_max_voltage);
+		move_with_pid_time(displacement.in(inches), max_time, move_max_voltage);
 	}
 
-// Odom task
+	// Odom task
 	void start_odom() {
 		odom_updater = std::make_unique<pros::Task>([this]() {
 			while (true) {
@@ -223,7 +159,6 @@ Robot(
 			}
 		});
 	}
-
 };
 
 // CONFIGS
@@ -262,14 +197,14 @@ dlib::ErrorTimeSettler<Meters> time_move_pid_settler {
 
 // Adjust these gainsWWW
 dlib::PidGains turn_pid_gains {
-	45, 	// kp, porportional gain
-	0, 	// ki, integral gain
-	.085* 39.37	// kd, derivative gain
+	45,
+	0,
+	3
 };
 
 dlib::ErrorDerivativeSettler<Degrees> turn_pid_settler {
 	degrees(1),		// error threshold, the maximum error the pid can settle at
-	degrees_per_second(0.1)	// derivative threshold, the maximum instantaneous error over time the pid can settle at
+	degrees_per_second(0.2)	// derivative threshold, the maximum instantaneous error over time the pid can settle at
 };
 
 dlib::ErrorTimeSettler<Degrees> time_turn_pid_settler {
@@ -277,35 +212,12 @@ dlib::ErrorTimeSettler<Degrees> time_turn_pid_settler {
 	milli(seconds)(100) // derivative threshold, the maximum instantaneous error over time the pid can settle at
 };
 
-dlib::Feedforward<Meters> move_feedforward{
-	{0.94,5.1,1}
-};
-
-// init robot + subsystems
-//Robot
-// Chassis + autonomous motion control will be inside of this class
-Robot robot = Robot(
-	chassis_config,
-	imu_config,
-	move_pid_gains,
-	time_move_pid_settler,
-	move_pid_settler,
-	turn_pid_gains,
-	time_turn_pid_settler,
-	turn_pid_settler,
-	move_feedforward
-);
-
-// Intake
-// the intake and anything related to it will be included inside of this class.
 Intake intake(
 	-8,
 	3,
 	4
 );
 
-// Mogo
-// the mogo pneumatic will be included inside of this class.
 Mogo mogo(
 	'H',
 	false
@@ -329,252 +241,92 @@ MiscPneumatics misc_pneumatics(
 	false
 );
 
-void test(){
-	robot.turn_to_point({inches(-10), inches(0)}, false, 12000, 2000);
+// init robot + subsystems
+//Robot
+// Chassis + autonomous motion control will be inside of this class
+Robot robot = {
+	chassis_config,
+	imu_config,
+	intake,
+	mogo,
+	lift,
+	misc_pneumatics,
+	move_pid_gains,
+	move_pid_settler,
+	turn_pid_gains,
+	turn_pid_settler
+};
+
+
+void example() {
+	std::array<std::function<void()>, 20> updaters;
+
+	int delay = 20 / updaters.size();
+	
+	for(auto updater : updaters) {
+		updater();
+		pros::delay(delay);
+	}
 }
 
-void red_awp(){
-	double cur_time = pros::millis();
-	// Try a PID movement!
-	// Move to Alliance Stake
-	robot.move_to_point({inches(-14), inches(0)}, true, 12000, 12000,1000);
-	robot.move_to_point({inches(-14), inches(-6)}, true, 12000, 12000, 600);
-	
-	// Intake onto alliance stake
-	intake.max_intake();
-	pros::delay(450);
 
-	// Move to safe Mogo
-	robot.move_to_point({inches(-15.5), inches(5)}, false, 12000, 12000,1000);
-	robot.move_to_point({inches(12), inches(36)}, true, 5500, 12000,1500);
-	
-	// Clamp mogo
-	mogo.set_clamp_state(true);
+void red_ring_side(){
 
-	// Intake safe ring
-	robot.move_to_point({inches(32), inches(32)}, false, 12000, 8000,1000);
-	
-	// move + intake middle rings
-	robot.move_to_point({inches(18), inches(34)}, true, 12000, 12000,1000);
-	pros::delay(300);
-	robot.move_to_point({inches(24), inches(43)}, false, 12000, 12000,1000);
-	robot.move_to_point({inches(32), inches(45)}, false, 12000, 6000,1000);
-
-	// touch bar
-	robot.move_to_point({inches(23), inches(41)}, true, 12000, 6000,1000);
-	pros::delay(750);
-	lift.lift_move(127);
-	//misc_pneumatics.set_arm_state(true);
-	robot.move_to_point({inches(2), inches(43)}, false, 12000, 12000,1000);
-	// 18 -41 true
-	// wait a sec
-	// raise lift
-	double elapsed_time = pros::millis() - cur_time;
-
-	std::cout << "autonomous finished in " << elapsed_time << std::endl;
 }
+
+void blue_ring_side(){
+	
+}
+
 void red_goal_side(){
-	double start = pros::millis();
-	// move to mid mogo
-	robot.move_to_point({inches(23), inches(0)}, false, 12000, 12000, 650);
-	robot.move_to_point({inches(38), inches(-5)}, false, 12000, 12000, 650);
-	// tip it
-	misc_pneumatics.set_doinker_state(true);
-	pros::delay(300);
-	// score preload
-	robot.turn_to_point({inches(38), inches(-8)}, false, 9000, 1000);
-	pros::delay(300);
-	misc_pneumatics.set_doinker_state(false);
-	robot.turn_to_point({inches(38), inches(0)}, false, 9000, 1000);
-	robot.chassis.move(-60);
-	pros::delay(300);
-	robot.move_to_point({inches(27), inches(0)}, true,12000,12000,1000);
-
-	// sweep
-	pros::delay(300);
-	robot.move_to_point({inches(25.5), inches(-15)}, false,12000,12000,1000);
-
-
-	// grab other mogo
-	robot.move_to_point({inches(28), inches(-28)}, true,5500, 7000, 1500);
-
-	mogo.set_clamp_state(true);
-
-	intake.max_intake();
-
-	robot.move_to_point({inches(16.5), inches(-5)}, false,5500, 7000, 1500);
-
-	auto elapsed_time = pros::millis() - start;
-
-	std::cout << elapsed_time << std::endl;
+	
 }
 
 void blue_goal_side(){
-	double start = pros::millis();
-	// move to mid mogo
-	robot.move_to_point({inches(23), inches(0)}, false, 12000, 12000, 650);
-	robot.move_to_point({inches(38), inches(5)}, false, 12000, 12000, 650);
-	// tip it
-	misc_pneumatics.set_doinker_state(true);
-	pros::delay(300);
-	// score preload
-	robot.turn_to_point({inches(38), inches(0)}, false, 9000, 1000);
-	pros::delay(300);
-	misc_pneumatics.set_doinker_state(false);
-	robot.chassis.move(-60);
-	pros::delay(300);
-	robot.move_to_point({inches(27), inches(0)}, true,12000,12000,1000);
-
-	// sweep
-	pros::delay(300);
-	robot.move_to_point({inches(25.5), inches(15)}, false,12000,12000,1000);
-
-
-	// grab other mogo
-	robot.move_to_point({inches(28), inches(28)}, true,5500, 7000, 1500);
-
-	mogo.set_clamp_state(true);
-
-	intake.max_intake();
-
-	pros::delay(1000);
-
-	intake.stop_intake();
-
-	robot.move_to_point({inches(16.5), inches(5)}, false,5500, 7000, 1500);
-
-	auto elapsed_time = pros::millis() - start;
-
-	std::cout << elapsed_time << std::endl;
-
-
-	// intake
-	// -25.5 -15 false
-	// wait .5 sec
-	// intake stop
-	// -25 -28 true
-	// mogo clamp
-	// intake
-
-
-
+	
 }
 
-void blue_awp(){
-	double cur_time = pros::millis();
-	// Try a PID movement!
-	// Move to Alliance Stake
-	robot.move_to_point({inches(-14), inches(0)}, true, 12000, 12000);
-	robot.move_to_point({inches(-14), inches(6)}, true, 12000, 12000, 600);
-	
-	// Intake onto alliance stake
-	intake.max_intake();
-	pros::delay(450);
-
-	// Move to safe Mogo
-	robot.move_to_point({inches(-15.5), inches(-5)}, false, 12000, 12000);
-	robot.move_to_point({inches(12), inches(-36)}, true, 5500, 12000);
-	
-	// Clamp mogo
-	mogo.set_clamp_state(true);
-
-	// Intake safe ring
-	robot.move_to_point({inches(32), inches(-34)}, false, 12000, 8000);
-	
-	// move + intake middle rings
-	robot.move_to_point({inches(18), inches(-34)}, true, 12000, 12000);
-	pros::delay(300);
-	robot.move_to_point({inches(24), inches(-45)}, false, 12000, 12000);
-	robot.move_to_point({inches(32), inches(-47)}, false, 12000, 6000);
-
-	// touch bar
-	robot.move_to_point({inches(23), inches(-41)}, true, 12000, 6000);
-	pros::delay(750);
-	lift.lift_move(127);
-	//misc_pneumatics.set_arm_state(true);
-	robot.move_to_point({inches(2), inches(-43)}, false, 12000, 12000);
-	// 18 -41 true
-	// wait a sec
-	// raise lift
-	double elapsed_time = pros::millis() - cur_time;
-
-	std::cout << "autonomous finished in " << elapsed_time << std::endl;
-}
 
 void skills(){
-	// intake onto ally stake
-	intake.max_intake();
+	// alliance stake
+	robot.intake.max();
 	pros::delay(600);
-
-	// move to and clamp mogo
-	robot.move_to_point({inches(13.5), inches(0)}, false, 12000, 12000);
-	robot.move_to_point({inches(14), inches(23)}, true, 5500, 8000);
-	mogo.set_clamp_state(true);
-
-	// intake ring 1
-	robot.move_to_point({inches(40.6), inches(23)}, false, 9000, 12000);
-
-	// intake ring 2
-	robot.move_to_point({inches(58), inches(48)}, false, 9000, 12000);
-	pros::delay(500);
-
-	// intake ring 3
-	robot.move_to_point({inches(47), inches(49)}, false, 9000, 12000);
-	
-	// intake rings 4 and 5
-	robot.move_to_point({inches(8), inches(47)}, false, 3000, 12000);
+	robot.move_with_pid_time(14.5);
+	// clamp mogo
+	robot.move_to_point(14.5,15,true,5500,12000);
+	robot.mogo.set_clamp_state(true);
+	// intake ring1
+	robot.move_to_point(29.7,18.6);
 	pros::delay(1000);
-
+	// intake ring2
+	robot.move_to_point(55.7,47.5);
+	pros::delay(1000);
+	// intake ring3
+	robot.move_to_point(47.6,47.2);
+	pros::delay(1000);
+	// intake ring4,5
+	robot.move_to_point(3.1,47.2,false,4000,12000,5000);
+	pros::delay(1000);
+	// back up
+	robot.move_with_pid_time(-25);
+	pros::delay(1000);
 	// intake ring 6
-	robot.move_to_point({inches(15.5), inches(37.5)}, true, 12000, 12000);
-	robot.move_to_point({inches(14.7), inches(52.3)}, false, 7000, 12000);
-	pros::delay(500);
-
-	// drop mogo
-	robot.move_to_point({inches(5), inches(60)}, true, 8000, 8000);
-	mogo.set_clamp_state(false);
-
-	// PART 2 (MIRROR)
-
-	robot.move_to_point({inches(15), inches(50)}, false, 8000, 8000);
-
-	robot.move_to_point({inches(11), inches(6)}, true, 8000, 8000);
-
-	// move to and clamp mogo
-	robot.move_to_point({inches(13.5), inches(0)}, false, 12000, 12000);
-	robot.move_to_point({inches(14), inches(-23)}, true, 5500, 8000);
-	mogo.set_clamp_state(true);
-
-	// intake ring 1
-	robot.move_to_point({inches(40.6), inches(-23)}, false, 9000, 12000);
-
-	// intake ring 2
-	robot.move_to_point({inches(58), inches(-48)}, false, 9000, 12000);
+	robot.move_to_point(17.3,56.6);
 	pros::delay(1000);
 
-	// intake ring 3
-	robot.move_to_point({inches(47), inches(-46)}, false, 9000, 12000);
-	
-	// intake rings 4 and 5
-	robot.move_to_point({inches(8), inches(-47)}, false, 3000, 12000);
-	pros::delay(2000);
-
-	// intake ring 6
-	robot.move_to_point({inches(15.5), inches(-37.5)}, true, 12000, 12000);
-	robot.move_to_point({inches(14.7), inches(-52.3)}, false, 7000, 12000);
-	pros::delay(1000);
-
-	// drop mogo
-	robot.move_to_point({inches(5), inches(-60)}, true, 8000, 8000);
-	mogo.set_clamp_state(false);
+	// back into corner + drop mogo
+	robot.move_to_point(3.9,60.7,true,5000,12000);
+	robot.mogo.set_clamp_state(false);
+	// 17.3, 56.6, false
+	// intake stop
+	// 3.9, 60.7, true
+	// mogo stop clamp
 }
 
-void on_center_button() {}
-
 rd::Selector selector({
-    {"Red Ring Side", red_awp},
+    {"Red Ring Side", red_ring_side},
 	{"Red Goal Side", red_goal_side},
-	{"Blue Ring Side", blue_awp},
+	{"Blue Ring Side", blue_ring_side},
 	{"Blue Goal Side", blue_goal_side},
 	{"Skills", skills}
 });
@@ -589,21 +341,42 @@ void initialize() {
 	robot.chassis.left_motors.raw.tare_position_all();
 	robot.chassis.right_motors.raw.tare_position_all();
 	auto current = pros::millis();
-	
-	
+
+	// Intake Filter Task //
+	// ------------------ //
+	// when the sensor detects a ring, enable one of two macros:
+	// redirect: redirect a alliance color ring onto wall stake mech
+	// fling: fling non-alliance rings so they dont get scored
+	pros::Task intake_task([&]() {
+		while(true){
+			if(robot.intake.intake_filter()){
+				if(robot.intake.redirect){
+					robot.intake.max();
+					pros::delay(165);
+					robot.intake.rev();
+				}
+				else{
+					robot.intake.max();
+					pros::delay(200);
+					robot.intake.rev();
+				}
+			}
+		pros::delay(20);
+		}
+	});
 
 	pros::Task screen_task([&]() {
         while (true) {
 			dlib::Pose2d pose = robot.odom.get_position();
 			
 			auto elapsed = pros::millis() - current;
-			auto voltage = 3;
+
 			console.clear();
             // print robot location to the brain screen
             console.printf("X: %f", pose.x.in(inches)); // x
             console.printf("Y: %f", pose.y.in(inches)); // y
             console.printf("Theta: %f",pose.theta.in(degrees));
-			std::cout << elapsed << "," << voltage << "," << robot.chassis.average_motor_displacement().in(meters) << "," << robot.chassis.average_motor_velocity().in(meters_per_second) << "\n";
+			
 			//std::cout << pose.theta.in(degrees) << "\n"; // heading
             // delay to save resources
             pros::delay(20);
@@ -626,32 +399,13 @@ void autonomous() {
 	auto voltage = 0;
 
 	console.focus();
-	while(voltage < 12000){
-		auto elapsed = pros::millis() - cur_time;
-		
-		auto delta_position = robot.chassis.average_motor_displacement() - last_position;
-		auto velocity = delta_position / seconds(0.02);
-		voltage = elapsed * .5;
-
-
-		robot.chassis.move_voltage(milli(volts)(voltage));
-
-		last_position = robot.chassis.average_motor_displacement();
-		pros::delay(20);
-	}
-	robot.chassis.move_voltage(volts(0));
-
-	//robot.chassis.move_voltage(volts(1));
-	//selector.run_auton();
-	//robot.move_pid_ffwd(inches(48),99999,12000);
-
+	skills();
 }	
-
-
 
 void opcontrol() {
 	bool mogo_state = true;
 	bool arm_state = false;
+	bool redirect_bool = false;
 	int range = 16000;
 	while(true){
 		// Try arcade drive control!
@@ -671,49 +425,53 @@ void opcontrol() {
 
 		robot.chassis.arcade(power,turn);
 
-		if(master.get_digital(pros::E_CONTROLLER_DIGITAL_R1)){
-			intake.intake(127);
+		if(master.get_digital(pros::E_CONTROLLER_DIGITAL_R1) && !robot.intake.intake_filter()){
+			robot.intake.move(127);
 		}
-		else if(master.get_digital(pros::E_CONTROLLER_DIGITAL_A)){
-			intake.rev_intake();
+		else if(master.get_digital(pros::E_CONTROLLER_DIGITAL_A) && !robot.intake.intake_filter()){
+			robot.intake.rev();
 		}
-		else{
-			intake.stop_intake();
+		else if(!robot.intake.intake_filter()){
+			robot.intake.stop();
 		}
 	
 		if(master.get_digital_new_press(pros::E_CONTROLLER_DIGITAL_R2)){
 			mogo_state = !mogo_state;
-			mogo.set_clamp_state(mogo_state);
+			robot.mogo.set_clamp_state(mogo_state);
 		}
 
 		if(master.get_digital_new_press(pros::E_CONTROLLER_DIGITAL_L1)){
-			lift.lift_toggle = true;
+			robot.lift.lift_toggle = true;
 		}
 		if(master.get_digital_new_press(pros::E_CONTROLLER_DIGITAL_L2)){
-			lift.lift_toggle = false;
+			robot.lift.lift_toggle = false;
 		}
 
 		if(master.get_digital_new_press(pros::E_CONTROLLER_DIGITAL_Y)){
-			misc_pneumatics.doinker_toggle = !misc_pneumatics.doinker_toggle;
-			misc_pneumatics.set_doinker_state(misc_pneumatics.doinker_toggle);
+			robot.pneumatics.doinker_toggle = !misc_pneumatics.doinker_toggle;
+			robot.pneumatics.set_doinker_state(misc_pneumatics.doinker_toggle);
 		}
 
 		if(master.get_digital(pros::E_CONTROLLER_DIGITAL_X)){
-			misc_pneumatics.set_indexer_state(true);
+			robot.pneumatics.set_indexer_state(true);
 		}
 		else{
-			misc_pneumatics.set_indexer_state(false);
+			robot.pneumatics.set_indexer_state(false);
 		}
 
 		if(master.get_digital_new_press(pros::E_CONTROLLER_DIGITAL_LEFT)){
 			arm_state = !arm_state;
-			misc_pneumatics.set_arm_state(arm_state);
+			robot.pneumatics.set_arm_state(arm_state);
 		}
 
+		if(master.get_digital_new_press(pros::E_CONTROLLER_DIGITAL_B)){
+			redirect_bool = !redirect_bool;
+			robot.intake.set_redirect(redirect_bool);
+		}
 
-		lift.lift_range(16000);
+		robot.lift.lift_range(16000);
 
-		pros::delay(8);
+		pros::delay(10);
 	}
 	
 	

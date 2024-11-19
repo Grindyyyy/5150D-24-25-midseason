@@ -17,10 +17,10 @@ au::Quantity<au::Degrees, double> angular_error(
     au::Quantity<au::Degrees, double> reading
 );
 
-template<typename Units>
-au::Quantity<Units, double> relative_target(
-    au::Quantity<Units, double> start,
-    au::Quantity<Units, double> target
+template<typename U1, typename U2>
+au::Quantity<U1, double> relative_target(
+    au::Quantity<U1, double> start,
+    au::Quantity<U2, double> target
 ) {
     return start + target;
 }

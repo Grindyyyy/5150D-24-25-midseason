@@ -1,5 +1,4 @@
 #pragma once
-#include <iostream>
 #include "au/au.hpp"
 
 namespace dlib {
