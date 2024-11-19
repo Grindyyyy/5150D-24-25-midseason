@@ -293,34 +293,28 @@ void skills(){
 	pros::delay(600);
 	robot.move_with_pid_time(14.5);
 	// clamp mogo
-	robot.move_to_point(14.5,15,true,5500,12000);
+	robot.move_to_point(14.5,15,true,12000,5500);
 	robot.mogo.set_clamp_state(true);
 	// intake ring1
 	robot.move_to_point(29.7,18.6);
-	pros::delay(1000);
+	pros::delay(500);
 	// intake ring2
 	robot.move_to_point(55.7,47.5);
-	pros::delay(1000);
+	pros::delay(500);
 	// intake ring3
 	robot.move_to_point(47.6,47.2);
-	pros::delay(1000);
 	// intake ring4,5
-	robot.move_to_point(3.1,47.2,false,4000,12000,5000);
-	pros::delay(1000);
+	robot.move_to_point(3.1,47.2,false,3000,5000,12000);
+	pros::delay(500);
 	// back up
 	robot.move_with_pid_time(-25);
-	pros::delay(1000);
 	// intake ring 6
 	robot.move_to_point(17.3,56.6);
-	pros::delay(1000);
+	pros::delay(500);
 
 	// back into corner + drop mogo
-	robot.move_to_point(3.9,60.7,true,5000,12000);
+	robot.move_to_point(3.9,60.7,true,1500,5000);
 	robot.mogo.set_clamp_state(false);
-	// 17.3, 56.6, false
-	// intake stop
-	// 3.9, 60.7, true
-	// mogo stop clamp
 }
 
 rd::Selector selector({
