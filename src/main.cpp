@@ -39,52 +39,47 @@ public:
 		chassis.right_motors.raw.set_gearing_all(pros::MotorGearset::blue);
 		
 		imu.initialize();
-		//start_odom();
 	}
 
 	// Use PID to do a relative movement
-	void move_with_pid_time(double displacement, double max_time = 99999, int max_voltage = 12000) {
+	void move_with_pid(double displacement, double max_time = 99999, int max_voltage = 12000) {
 		auto start_displacement = chassis.average_motor_displacement();
 		auto target_displacement = dlib::relative_target(start_displacement, inches(displacement));
-		auto start_time = pros::millis();	
+
 		double elapsed_time = 0;
 
 		move_pid.reset();
 		move_settler.reset();
 
-		while (!move_settler.is_settled(move_pid.get_error(), move_pid.get_derivative()) /*&& (elapsed_time < max_time)*/) {
+		while (!move_settler.is_settled(move_pid.get_error(), move_pid.get_derivative())) {
+
 			auto error = dlib::linear_error(target_displacement, chassis.average_motor_displacement());
+
 			if (elapsed_time > max_time) {
-				auto brake_volatge = au::copysign(volts(0.9), -error);
-				chassis.move_voltage(brake_volatge);
+				chassis.brake();
 				std::cout << "timed out" << "\n";
 				break;
 			}
 			auto voltage = move_pid.update(error, milli(seconds)(20));
+
 			if(au::abs(voltage) > milli(volts)(max_voltage)){
-				if(voltage > milli(volts)(0)){
-					voltage = milli(volts)(max_voltage);
-				}
-				if(voltage < milli(volts)(0)){
-					voltage = milli(volts)(-max_voltage);
-				}
+				au::clamp(voltage, milli(volts)(-max_voltage), milli(volts)(max_voltage));
 			}
 			
 			std::cout << "error: " << error << ", voltage:" << voltage << std::endl;
 			chassis.move_voltage(voltage);
 
-			elapsed_time += 5;
-			pros::delay(5);
+			elapsed_time += 20;
+			pros::delay(20);
 		}
 		std::cout << "settled" << "\n";
 		chassis.move(0);
 	}	
 
 	// Use PID to do a relative movement
-	void turn_with_pid_time(double heading, double max_time, int max_voltage) {
+	void turn_with_pid(double heading, double max_time, int max_voltage) {
 		auto target_heading = degrees(heading);
 
-		auto start_time = pros::millis();	
 		double elapsed_time = 0;	
 
 		turn_pid.reset();
@@ -97,22 +92,15 @@ public:
 			auto error = dlib::angular_error(degrees(heading), imu.get_rotation());
 
 			if (elapsed_time > max_time) {
-				auto brake_volatge = au::copysign(volts(0.9), -error);
-				chassis.turn_voltage(brake_volatge);
+				chassis.brake();
 				std::cout << "timed out" << "\n";
 				break;
 			}
 
-			
 			voltage = turn_pid.update(error, milli(seconds)(20));
 			
 			if(au::abs(voltage) > milli(volts)(max_voltage)){
-				if(voltage > milli(volts)(0)){
-					voltage = milli(volts)(max_voltage);
-				}
-				if(voltage < milli(volts)(0)){
-					voltage = milli(volts)(-max_voltage);
-				}
+				au::clamp(voltage, milli(volts)(-max_voltage), milli(volts)(max_voltage));
 			}
 
 			std::cout << "target:" << heading << ", " << "current:" << imu.get_heading() << ", " << "error: " << error << ", voltage:" << voltage << std::endl;
@@ -131,7 +119,7 @@ public:
 		auto point = dlib::Vector2d(inches(x), inches(y));
 		auto angle = odom.angle_to(point, reverse);
 
-		turn_with_pid_time(angle.in(degrees), max_time,max_voltage);
+		turn_with_pid(angle.in(degrees), max_time,max_voltage);
 	}
 
 	void move_to_point(double x, double y, bool reverse = false, double max_time = 15000, int move_max_voltage = 12000, int turn_max_voltage = 12000) {
@@ -141,7 +129,7 @@ public:
 		if(reverse){
 			displacement = -displacement;
 		}
-		move_with_pid_time(displacement.in(inches), max_time, move_max_voltage);
+		move_with_pid(displacement.in(inches), max_time, move_max_voltage);
 	}
 
 	// Odom task
@@ -180,9 +168,9 @@ dlib::ImuConfig imu_config {
 
 // Adjust these gains
 dlib::PidGains move_pid_gains {
-	1.2 * 39.37, 	// kp, porportional gain
-	0 *  39.37, 	// ki, integral gain
-		0.3 *  39.37// kd, derivative gain
+	47.3, 	// kp, porportional gain
+	0, 	// ki, integral gain
+	11.8	// kd, derivative gain
 };
 
 dlib::ErrorDerivativeSettler<Meters> move_pid_settler {
@@ -257,19 +245,6 @@ Robot robot = {
 	turn_pid_settler
 };
 
-
-void example() {
-	std::array<std::function<void()>, 20> updaters;
-
-	int delay = 20 / updaters.size();
-	
-	for(auto updater : updaters) {
-		updater();
-		pros::delay(delay);
-	}
-}
-
-
 void red_ring_side(){
 
 }
@@ -291,7 +266,7 @@ void skills(){
 	// alliance stake
 	robot.intake.max();
 	pros::delay(600);
-	robot.move_with_pid_time(14.5);
+	robot.move_with_pid(14.5);
 	// clamp mogo
 	robot.move_to_point(14.5,15,true,12000,5500);
 	robot.mogo.set_clamp_state(true);
@@ -307,7 +282,7 @@ void skills(){
 	robot.move_to_point(3.1,47.2,false,3000,5000,12000);
 	pros::delay(500);
 	// back up
-	robot.move_with_pid_time(-25);
+	robot.move_with_pid(-25);
 	// intake ring 6
 	robot.move_to_point(17.3,56.6);
 	pros::delay(500);
@@ -334,32 +309,34 @@ void initialize() {
 
 	robot.chassis.left_motors.raw.tare_position_all();
 	robot.chassis.right_motors.raw.tare_position_all();
-	auto current = pros::millis();
 
 	// Intake Filter Task //
 	// ------------------ //
 	// when the sensor detects a ring, enable one of two macros:
 	// redirect: redirect a alliance color ring onto wall stake mech
 	// fling: fling non-alliance rings so they dont get scored
+	// shouldn't interfere with auton
 	pros::Task intake_task([&]() {
 		while(true){
 			if(robot.intake.intake_filter()){
 				if(robot.intake.redirect){
 					robot.intake.max();
-					pros::delay(165);
+					pros::delay(100);
 					robot.intake.rev();
+					pros::delay(800);
 				}
 				else{
 					robot.intake.max();
 					pros::delay(200);
 					robot.intake.rev();
+					pros::delay(500);
 				}
 			}
 		pros::delay(20);
 		}
 	});
 
-	pros::Task screen_task([&]() {
+	/*pros::Task screen_task([&]() {
         while (true) {
 			dlib::Pose2d pose = robot.odom.get_position();
 			
@@ -375,7 +352,8 @@ void initialize() {
             // delay to save resources
             pros::delay(20);
         }
-	});
+	});*/
+	// potential bad bad (no mutex)
 	
 }
 
@@ -386,12 +364,6 @@ void competition_initialize() {}
 
 
 void autonomous() {
-	double cur_time = pros::millis();
-	robot.chassis.left_motors.raw.tare_position_all();
-	robot.chassis.right_motors.raw.tare_position_all();
-	auto last_position = robot.chassis.average_motor_displacement();
-	auto voltage = 0;
-
 	console.focus();
 	skills();
 }	
@@ -401,24 +373,22 @@ void opcontrol() {
 	bool arm_state = false;
 	bool redirect_bool = false;
 	int range = 16000;
+	// Try arcade drive control!
+	pros::Controller master = pros::Controller(pros::E_CONTROLLER_MASTER);
 	while(true){
-		// Try arcade drive control!
-		pros::Controller master = pros::Controller(pros::E_CONTROLLER_MASTER);
-
+		
+		// ------------------- //
+		// Chassis Controls
+		// ------------------- //
 		// get power and turn
 		double power = master.get_analog(ANALOG_LEFT_Y);
 		double turn = master.get_analog(ANALOG_RIGHT_X);
 
-		dlib::Pose2d pose = robot.odom.get_position();
-
-		console.clear();
-            // print robot location to the brain screen
-        console.printf("X: %f", pose.x.in(inches)); // x
-        console.printf("\n Y: %f", pose.y.in(inches)); // y
-        console.printf("\n Theta: %f",pose.theta.in(degrees));
-
 		robot.chassis.arcade(power,turn);
 
+		// ------------------- //
+		// Intake Controls
+		// ------------------- //
 		if(master.get_digital(pros::E_CONTROLLER_DIGITAL_R1) && !robot.intake.intake_filter()){
 			robot.intake.move(127);
 		}
@@ -428,12 +398,18 @@ void opcontrol() {
 		else if(!robot.intake.intake_filter()){
 			robot.intake.stop();
 		}
-	
+
+		// ------------------- //
+		// Mogo Controls
+		// ------------------- //
 		if(master.get_digital_new_press(pros::E_CONTROLLER_DIGITAL_R2)){
 			mogo_state = !mogo_state;
 			robot.mogo.set_clamp_state(mogo_state);
 		}
 
+		// ------------------- //
+		// Lift Controls
+		// ------------------- //
 		if(master.get_digital_new_press(pros::E_CONTROLLER_DIGITAL_L1)){
 			robot.lift.lift_toggle = true;
 		}
@@ -441,11 +417,17 @@ void opcontrol() {
 			robot.lift.lift_toggle = false;
 		}
 
+		// ------------------- //
+		// Doinker Controls
+		// ------------------- //
 		if(master.get_digital_new_press(pros::E_CONTROLLER_DIGITAL_Y)){
 			robot.pneumatics.doinker_toggle = !misc_pneumatics.doinker_toggle;
 			robot.pneumatics.set_doinker_state(misc_pneumatics.doinker_toggle);
 		}
 
+		// ------------------- //
+		// Indexer Controls
+		// ------------------- //
 		if(master.get_digital(pros::E_CONTROLLER_DIGITAL_X)){
 			robot.pneumatics.set_indexer_state(true);
 		}
@@ -453,19 +435,26 @@ void opcontrol() {
 			robot.pneumatics.set_indexer_state(false);
 		}
 
+		// ------------------- //
+		// Wall Stake Piston Controls
+		// ------------------- //
 		if(master.get_digital_new_press(pros::E_CONTROLLER_DIGITAL_LEFT)){
 			arm_state = !arm_state;
 			robot.pneumatics.set_arm_state(arm_state);
 		}
 
+		// ------------------- //
+		// Intake Redirect
+		// ------------------- //
 		if(master.get_digital_new_press(pros::E_CONTROLLER_DIGITAL_B)){
 			redirect_bool = !redirect_bool;
 			robot.intake.set_redirect(redirect_bool);
 		}
 
+		// Lift task override
 		robot.lift.lift_range(16000);
 
-		pros::delay(10);
+		pros::delay(20);
 	}
 	
 	
