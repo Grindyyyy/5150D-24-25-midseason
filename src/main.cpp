@@ -87,9 +87,16 @@ public:
 
 		auto voltage = volts(0.0);
 
+		auto last_error = degrees(heading);
+		auto reading = imu.get_rotation();
+
 		while (!turn_settler.is_settled(turn_pid.get_error(), turn_pid.get_derivative())) {
 
-			auto error = dlib::angular_error(degrees(heading), imu.get_rotation());
+			auto error = (au::degrees)(heading);
+
+			if(au::abs(error - last_error) > (au::degrees)(50)){
+				error = last_error;
+			}
 
 			if (elapsed_time > max_time) {
 				chassis.brake();
@@ -105,6 +112,8 @@ public:
 
 			std::cout << "target:" << heading << ", " << "current:" << imu.get_heading() << ", " << "error: " << error << ", voltage:" << voltage << std::endl;
 			chassis.turn_voltage(voltage);
+
+			last_error = error;
 
 			elapsed_time += 20;
 			pros::delay(20);
@@ -271,20 +280,20 @@ void skills(){
 	robot.move_to_point(14.5,15,true,12000,5500);
 	robot.mogo.set_clamp_state(true);
 	// intake ring1
-	robot.move_to_point(29.7,18.6);
+	robot.move_to_point(29.7,18.6,false,10000,12000,8000);
 	pros::delay(500);
 	// intake ring2
-	robot.move_to_point(55.7,47.5);
+	robot.move_to_point(55.7,47.5,false,10000,12000,8000);
 	pros::delay(500);
 	// intake ring3
-	robot.move_to_point(47.6,47.2);
+	robot.move_to_point(47.6,47.2,false,10000,12000,8000);
 	// intake ring4,5
 	robot.move_to_point(3.1,47.2,false,3000,5000,12000);
 	pros::delay(500);
 	// back up
 	robot.move_with_pid(-25);
 	// intake ring 6
-	robot.move_to_point(17.3,56.6);
+	robot.move_to_point(17.3,56.6,false,10000,12000,8000);
 	pros::delay(500);
 
 	// back into corner + drop mogo
@@ -336,12 +345,10 @@ void initialize() {
 		}
 	});
 
-	/*pros::Task screen_task([&]() {
+	pros::Task screen_task([&]() {
         while (true) {
 			dlib::Pose2d pose = robot.odom.get_position();
 			
-			auto elapsed = pros::millis() - current;
-
 			console.clear();
             // print robot location to the brain screen
             console.printf("X: %f", pose.x.in(inches)); // x
@@ -352,7 +359,7 @@ void initialize() {
             // delay to save resources
             pros::delay(20);
         }
-	});*/
+	});
 	// potential bad bad (no mutex)
 	
 }
