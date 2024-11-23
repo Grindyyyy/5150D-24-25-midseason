@@ -1,6 +1,7 @@
 #include "main.h"
 #include "dlib/dlib.hpp"
 #include "dlib/kinematics/odometry.hpp"
+#include "dlib/utilities/error_calculation.hpp"
 #include "intake.hpp"
 #include "misc_pneumatics.hpp"
 #include "mogo.hpp"
@@ -63,14 +64,19 @@ public:
 			auto voltage = move_pid.update(error, milli(seconds)(20));
 
 			if(au::abs(voltage) > milli(volts)(max_voltage)){
-				au::clamp(voltage, milli(volts)(-max_voltage), milli(volts)(max_voltage));
+				if(voltage > volts(0)){
+					voltage = milli(volts)(max_voltage);
+				}
+				else{
+					voltage = milli(volts)(-max_voltage);
+				}
 			}
 			
 			std::cout << "error: " << error << ", voltage:" << voltage << std::endl;
 			chassis.move_voltage(voltage);
 
-			elapsed_time += 20;
-			pros::delay(20);
+			elapsed_time += 5;
+			pros::delay(5);
 		}
 		std::cout << "settled" << "\n";
 		chassis.move(0);
@@ -92,11 +98,7 @@ public:
 
 		while (!turn_settler.is_settled(turn_pid.get_error(), turn_pid.get_derivative())) {
 
-			auto error = (au::degrees)(heading);
-
-			if(au::abs(error - last_error) > (au::degrees)(50)){
-				error = last_error;
-			}
+			auto error = dlib::angular_error((au::degrees)(heading), imu.get_rotation());
 
 			if (elapsed_time > max_time) {
 				chassis.brake();
@@ -105,9 +107,15 @@ public:
 			}
 
 			voltage = turn_pid.update(error, milli(seconds)(20));
+			std::cout << voltage << std::endl;
 			
 			if(au::abs(voltage) > milli(volts)(max_voltage)){
-				au::clamp(voltage, milli(volts)(-max_voltage), milli(volts)(max_voltage));
+				if(voltage > volts(0)){
+					voltage = milli(volts)(max_voltage);
+				}
+				else{
+					voltage = milli(volts)(-max_voltage);
+				}
 			}
 
 			std::cout << "target:" << heading << ", " << "current:" << imu.get_heading() << ", " << "error: " << error << ", voltage:" << voltage << std::endl;
@@ -131,9 +139,9 @@ public:
 		turn_with_pid(angle.in(degrees), max_time,max_voltage);
 	}
 
-	void move_to_point(double x, double y, bool reverse = false, double max_time = 15000, int move_max_voltage = 12000, int turn_max_voltage = 12000) {
+	void move_to_point(double x, double y, bool reverse = false, double max_time = 3000, int move_max_voltage = 12000, int turn_max_voltage = 12000) {
 		auto point = dlib::Vector2d(inches(x), inches(y));
-		turn_to_point(x, y, reverse,turn_max_voltage, max_time);
+		turn_to_point(x, y, reverse,max_time, turn_max_voltage);
 		auto displacement = odom.displacement_to(point);
 		if(reverse){
 			displacement = -displacement;
@@ -194,9 +202,9 @@ dlib::ErrorTimeSettler<Meters> time_move_pid_settler {
 
 // Adjust these gainsWWW
 dlib::PidGains turn_pid_gains {
-	45,
+	50,
 	0,
-	3
+	2.6
 };
 
 dlib::ErrorDerivativeSettler<Degrees> turn_pid_settler {
@@ -255,50 +263,178 @@ Robot robot = {
 };
 
 void red_ring_side(){
-
+	// alliance stake
+	robot.move_with_pid(-14);
+	robot.move_to_point(-14, 6,true,700);
+	intake.max();
+	pros::delay(500);
+	// grab mogo
+	robot.move_with_pid(13);
+	robot.move_to_point(8.7,-30.7,true,10000,5750,8000);
+	mogo.set_clamp_state(true);
+	// intake ring 1
+	robot.move_to_point(27.5,-33.9,false,10000,12000,8000);
+	// back up
+	robot.move_with_pid(-10);
+	// intake ring 2
+	robot.move_to_point(23.6,-46.3,false,10000,12000,8000);
+	// intake ring 3
+	robot.move_to_point(32,-49.6,false,10000,12000,8000);
+	pros::delay(500);
+	// back up
+	robot.move_to_point(21,-38,true,10000,12000,8000);
+	lift.lift_move(127);
+	robot.move_to_point(0,-39.3,false,10000,12000,8000);
 }
 
 void blue_ring_side(){
-	
+	// alliance stake
+	robot.move_with_pid(-14);
+	robot.move_to_point(-14, -6,true,700);
+	intake.max();
+	pros::delay(500);
+	// grab mogo
+	robot.move_with_pid(13);
+	robot.move_to_point(8.7,30.7,true,10000,5750,8000);
+	mogo.set_clamp_state(true);
+	// intake ring 1
+	robot.move_to_point(27.5,33.9,false,10000,12000,8000);
+	// back up
+	robot.move_with_pid(-10);
+	// intake ring 2
+	robot.move_to_point(23.6,46.3,false,10000,12000,8000);
+	// intake ring 3
+	robot.move_to_point(32,49.6,false,10000,12000,8000);
+	pros::delay(500);
+	// back up
+	robot.move_to_point(21,38,true,10000,12000,8000);
+	lift.lift_move(127);
+	robot.move_to_point(0,39.3,false,10000,12000,8000);
 }
 
 void red_goal_side(){
-	
+	// grab 5th mogo
+	robot.move_with_pid(-30.4,1000);
+	robot.move_to_point(-40.8,-7.4,true);
+	mogo.set_clamp_state(true);
+	// score preload
+	intake.max();
+	// grab + score ring 1
+	robot.move_to_point(-30.7,-9.9,false,1000);
+	pros::delay(750);
+	intake.stop();
+	mogo.set_clamp_state(false);
+	// grab safe mogo
+	robot.move_to_point(-24.2,-11.6,false,1000);
+	robot.move_to_point(-25,-27.3,true,2000,5500);
+	mogo.set_clamp_state(true);
+	// indexer
+	intake.max();
+	pros::delay(1000);
+	misc_pneumatics.set_indexer_state(true);
+	robot.move_to_point(-7.2,-51,false,1250);
+	misc_pneumatics.set_indexer_state(false);
+	pros::delay(1000);
+	robot.move_with_pid(-20);
+	pros::delay(500);
+	// touch ladder
+	lift.lift_move(127);
+	robot.move_to_point(-26,-41.2);
 }
 
 void blue_goal_side(){
-	
+	// grab 5th mogo
+	robot.move_with_pid(-30.4,1000);
+	robot.move_to_point(-40.8,7.4,true);
+	mogo.set_clamp_state(true);
+	// score preload
+	intake.max();
+	// grab + score ring 1
+	robot.move_to_point(-30.7,9.9,false,1000);
+	pros::delay(750);
+	intake.stop();
+	mogo.set_clamp_state(false);
+	// grab safe mogo
+	robot.move_to_point(-24.2,11.6,false,1000);
+	robot.move_to_point(-25,27.3,true,2000,5500);
+	mogo.set_clamp_state(true);
+	// indexer
+	intake.max();
+	pros::delay(1000);
+	misc_pneumatics.set_indexer_state(true);
+	robot.move_to_point(-7.2,51,false,1250);
+	misc_pneumatics.set_indexer_state(false);
+	pros::delay(1000);
+	robot.move_with_pid(-20);
+	pros::delay(500);
+	lift.lift_move(127);
+	robot.move_to_point(-26,41.2);
 }
-
-
 void skills(){
-	// alliance stake
 	robot.intake.max();
-	pros::delay(600);
-	robot.move_with_pid(14.5);
-	// clamp mogo
-	robot.move_to_point(14.5,15,true,12000,5500);
-	robot.mogo.set_clamp_state(true);
-	// intake ring1
-	robot.move_to_point(29.7,18.6,false,10000,12000,8000);
-	pros::delay(500);
-	// intake ring2
-	robot.move_to_point(55.7,47.5,false,10000,12000,8000);
-	pros::delay(500);
-	// intake ring3
-	robot.move_to_point(47.6,47.2,false,10000,12000,8000);
-	// intake ring4,5
-	robot.move_to_point(3.1,47.2,false,3000,5000,12000);
-	pros::delay(500);
+	pros::delay(750);
+	robot.move_with_pid(13.5);
+	// grab mogo
+	robot.move_to_point(14.1, 20.1, true, 10000, 5500);
+	mogo.set_clamp_state(true);
+	// ring 1
+	robot.move_to_point(37.9, 22.7);
+	// ring 2
+	robot.move_to_point(57,51.6);
+	// ring 3
+	robot.move_to_point(42.2, 47.8);
+	// rings 4,5
+	robot.move_to_point(5.2, 42.9,false,10000,4000);
+	pros::delay(1500);
 	// back up
-	robot.move_with_pid(-25);
-	// intake ring 6
-	robot.move_to_point(17.3,56.6,false,10000,12000,8000);
+	robot.move_with_pid(-20);
+	// ring 6
+	robot.move_to_point(18.4, 51.7);
+	// drop mogo
+	robot.move_to_point(6.8, 55.9,true,10000,4000);
+	mogo.set_clamp_state(false);
+	intake.stop();
+	// move to next mogo
+	robot.move_to_point(19,50.9,false,1000);
+	robot.move_to_point(14.5,22.9,true);
+	robot.move_to_point(15.6,-25.4,true,10000,5500);
+	mogo.set_clamp_state(true);
+	intake.max();
+	//ring 1
+	robot.move_to_point(38.5,-23.9);
+	// ring 2
+	robot.move_to_point(58.7,-52);
+	// ring 3
+	robot.move_to_point(37.4,-48.6);
+	// rings 4,5
+	robot.move_to_point(5.1, -47.4,false,10000,4000);
+	pros::delay(1500);
+	// back up
+	robot.move_with_pid(-23);
+	// ring 6
+	robot.move_to_point(18.1, -56.7);
+	// drop mogo
+	robot.move_to_point(7.2, -60.2, true, 10000, 4000);
+	mogo.set_clamp_state(false);
+	intake.stop();
+	// third quad
+	robot.move_to_point(60.5,-43.4);
+	intake.max();
+	// ring 1 kinda
+	robot.move_to_point(77.4, -30.3);
 	pros::delay(500);
-
-	// back into corner + drop mogo
-	robot.move_to_point(3.9,60.7,true,1500,5000);
-	robot.mogo.set_clamp_state(false);
+	intake.stop();
+	// grab mogo.
+	robot.move_to_point(106.7, -5.6, true, 10000, 5500);
+	intake.max();
+	// grab more ring
+	robot.move_to_point(85.2, -48.2);
+	robot.move_to_point(100.9, -51);
+	robot.move_to_point(100.9, -56.8);
+	// drop the mogo off
+	robot.move_to_point(116.7, -61.5, true, 2000, 4000);
+	mogo.set_clamp_state(false);
+	robot.move_to_point(91.2, -52.2);
 }
 
 rd::Selector selector({
@@ -327,18 +463,20 @@ void initialize() {
 	// shouldn't interfere with auton
 	pros::Task intake_task([&]() {
 		while(true){
-			if(robot.intake.intake_filter()){
-				if(robot.intake.redirect){
-					robot.intake.max();
-					pros::delay(100);
-					robot.intake.rev();
-					pros::delay(800);
-				}
-				else{
-					robot.intake.max();
-					pros::delay(200);
-					robot.intake.rev();
-					pros::delay(500);
+			if(intake.intake_filter()){
+				if(intake.auton){
+					if(intake.redirect){
+						intake.max();
+						pros::delay(70);
+						intake.move(-50);
+						pros::delay(800);
+					}
+					else{
+						intake.max();
+						pros::delay(200);
+						intake.rev();
+						pros::delay(500);
+					}
 				}
 			}
 		pros::delay(20);
@@ -348,7 +486,7 @@ void initialize() {
 	pros::Task screen_task([&]() {
         while (true) {
 			dlib::Pose2d pose = robot.odom.get_position();
-			
+
 			console.clear();
             // print robot location to the brain screen
             console.printf("X: %f", pose.x.in(inches)); // x
@@ -372,7 +510,9 @@ void competition_initialize() {}
 
 void autonomous() {
 	console.focus();
-	skills();
+	//skills();
+	selector.run_auton();
+	//
 }	
 
 void opcontrol() {
@@ -380,6 +520,8 @@ void opcontrol() {
 	bool arm_state = false;
 	bool redirect_bool = false;
 	int range = 16000;
+	intake.set_mode(false);
+	intake.set_alliance(Alliance::Red);
 	// Try arcade drive control!
 	pros::Controller master = pros::Controller(pros::E_CONTROLLER_MASTER);
 	while(true){
@@ -396,14 +538,14 @@ void opcontrol() {
 		// ------------------- //
 		// Intake Controls
 		// ------------------- //
-		if(master.get_digital(pros::E_CONTROLLER_DIGITAL_R1) && !robot.intake.intake_filter()){
-			robot.intake.move(127);
+		if(master.get_digital(pros::E_CONTROLLER_DIGITAL_R1) && !intake.intake_filter()){
+			intake.move(127);
 		}
-		else if(master.get_digital(pros::E_CONTROLLER_DIGITAL_A) && !robot.intake.intake_filter()){
-			robot.intake.rev();
+		else if(master.get_digital(pros::E_CONTROLLER_DIGITAL_A) && !intake.intake_filter()){
+			intake.rev();
 		}
 		else if(!robot.intake.intake_filter()){
-			robot.intake.stop();
+			intake.stop();
 		}
 
 		// ------------------- //
@@ -411,35 +553,35 @@ void opcontrol() {
 		// ------------------- //
 		if(master.get_digital_new_press(pros::E_CONTROLLER_DIGITAL_R2)){
 			mogo_state = !mogo_state;
-			robot.mogo.set_clamp_state(mogo_state);
+			mogo.set_clamp_state(mogo_state);
 		}
 
 		// ------------------- //
 		// Lift Controls
 		// ------------------- //
 		if(master.get_digital_new_press(pros::E_CONTROLLER_DIGITAL_L1)){
-			robot.lift.lift_toggle = true;
+			lift.lift_toggle = true;
 		}
 		if(master.get_digital_new_press(pros::E_CONTROLLER_DIGITAL_L2)){
-			robot.lift.lift_toggle = false;
+			lift.lift_toggle = false;
 		}
 
 		// ------------------- //
 		// Doinker Controls
 		// ------------------- //
 		if(master.get_digital_new_press(pros::E_CONTROLLER_DIGITAL_Y)){
-			robot.pneumatics.doinker_toggle = !misc_pneumatics.doinker_toggle;
-			robot.pneumatics.set_doinker_state(misc_pneumatics.doinker_toggle);
+			misc_pneumatics.doinker_toggle = !misc_pneumatics.doinker_toggle;
+			misc_pneumatics.set_doinker_state(misc_pneumatics.doinker_toggle);
 		}
 
 		// ------------------- //
 		// Indexer Controls
 		// ------------------- //
 		if(master.get_digital(pros::E_CONTROLLER_DIGITAL_X)){
-			robot.pneumatics.set_indexer_state(true);
+			misc_pneumatics.set_indexer_state(true);
 		}
 		else{
-			robot.pneumatics.set_indexer_state(false);
+			misc_pneumatics.set_indexer_state(false);
 		}
 
 		// ------------------- //
@@ -447,7 +589,7 @@ void opcontrol() {
 		// ------------------- //
 		if(master.get_digital_new_press(pros::E_CONTROLLER_DIGITAL_LEFT)){
 			arm_state = !arm_state;
-			robot.pneumatics.set_arm_state(arm_state);
+			misc_pneumatics.set_arm_state(arm_state);
 		}
 
 		// ------------------- //
@@ -455,11 +597,11 @@ void opcontrol() {
 		// ------------------- //
 		if(master.get_digital_new_press(pros::E_CONTROLLER_DIGITAL_B)){
 			redirect_bool = !redirect_bool;
-			robot.intake.set_redirect(redirect_bool);
+			intake.set_redirect(redirect_bool);
 		}
 
 		// Lift task override
-		robot.lift.lift_range(16000);
+		lift.lift_range(16000);
 
 		pros::delay(20);
 	}

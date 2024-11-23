@@ -10,12 +10,14 @@ Intake::Intake(
     int8_t color_sensor_port,
     int8_t distance_sensor_port,
     Alliance alliance, // false = blue, true = red
-    bool redirect
+    bool redirect,
+    bool auton
 ) :
     intake_motor(intake_port),
     color_sensor(color_sensor_port),
     distance_sensor(distance_sensor_port),
-    alliance(alliance) {
+    alliance(alliance),
+    auton(auton) {
     intake_motor.set_gearing(pros::E_MOTOR_GEAR_BLUE);
 };
 
@@ -25,6 +27,10 @@ void Intake::set_alliance(Alliance new_alliance){
 
 void Intake::set_redirect(bool new_redirect){
     redirect = new_redirect;
+}
+
+void Intake::set_mode(bool mode){
+    auton = mode;
 }
 
 // Move intake forward at x volts
@@ -61,6 +67,7 @@ double Intake::get_blue(){
 }
 
 bool Intake::intake_filter(){
+    color_sensor.set_led_pwm(20);
     if(alliance == Alliance::Blue){
         if((get_red() > get_blue() * 1.5) || (redirect && get_blue() > get_red() * 1.5)) {
             return true;

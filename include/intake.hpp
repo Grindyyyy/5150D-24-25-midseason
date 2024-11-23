@@ -14,6 +14,7 @@ class Intake{
         
         Alliance alliance;
         bool redirect;
+        bool auton;
         
 
         Intake(
@@ -21,13 +22,16 @@ class Intake{
             int8_t color_sensor_port, // color sensor for the intake
             int8_t distance_sensor_port,
             Alliance alliance = Alliance::Blue,
-            bool redirect = false // distance sensor for the intake
+            bool redirect = false, // distance sensor for the intake
+            bool auton = false
         );
 
 
         void set_alliance(Alliance new_alliance);
 
         void set_redirect(bool redirect);
+
+        void set_mode(bool auton);
 
         void move(int8_t volts);
 
