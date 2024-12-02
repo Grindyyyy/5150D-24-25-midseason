@@ -39,7 +39,7 @@ public:
      * 
      * @endcode
     */
-    bool is_settled(au::Quantity<Units, double> error, au::Quantity<au::TimeDerivative<Units>, double> derivative) {
+    bool is_settled(au::Quantity<Units, double> error, au::Quantity<au::TimeDerivative<Units>, double> derivative) const {
         
         // if the error and derivative are both exactly zero it is almost certain the pid has not been called yet
         if (error == au::ZERO && derivative == au::ZERO) {
@@ -52,12 +52,16 @@ public:
         return au::abs(error) <= error_threshold && au::abs(derivative) <= derivative_threshold;
     }
 
+    /**
+     * @brief Reset all of the settler state
+     * 
+     */
     void reset() {
         
     }
 protected:
-    au::Quantity<Units, double> error_threshold; // The error range that is acceptable
-    au::Quantity<au::TimeDerivative<Units>, double> derivative_threshold; // The derivative that is acceptable (speed)
+    const au::Quantity<Units, double> error_threshold; // The error range that is acceptable
+    const au::Quantity<au::TimeDerivative<Units>, double> derivative_threshold; // The derivative that is acceptable (speed)
 };
 
 

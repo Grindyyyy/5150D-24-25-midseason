@@ -21,11 +21,11 @@ MotorGroup::MotorGroup(MotorGroupConfig config) : raw(config.ports) {
 
 }
 
-void MotorGroup::send(double power) {
+void MotorGroup::move(const double power) {
     this->raw.move(power);
 }
 
-void MotorGroup::send_voltage(au::Quantity<au::Volts, double> voltage) {
+void MotorGroup::move_voltage(const au::Quantity<au::Volts, double> voltage) {
     auto millivolts = voltage.in(au::milli(au::volts));
     this->raw.move_voltage(millivolts);
 }

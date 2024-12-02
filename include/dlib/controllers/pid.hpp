@@ -1,5 +1,6 @@
 #pragma once
 #include "au/au.hpp"
+#include "dlib/controllers/pid.hpp"
 #include "pros/rtos.hpp"
 
 namespace dlib {
@@ -17,11 +18,38 @@ struct PidGains {
     double kd = 0;
 };
 
+struct PidConfig {
+    PidGains gains{};
+    au::Quantity<au::Volts, double> max_voltage = au::volts(12);
+};
+
+namespace detail {
+    template<typename Units>
+    struct PidGainsWithUnits {
+        au::Quantity<decltype(au::Volts{} / Units{}), double> kp;
+        au::Quantity<decltype(au::Volts{} / au::TimeIntegral<Units>{}), double> ki;
+        au::Quantity<decltype(au::Volts{} / au::TimeDerivative<Units>{}), double> kd;
+
+        PidGainsWithUnits(
+            PidGains gains
+        ) : 
+            kp(au::make_quantity<decltype(au::Volts{} / Units{})>(gains.kp)), 
+            ki(au::make_quantity<decltype(au::Volts{} / au::TimeIntegral<Units>{})>(gains.ki)), 
+            kd(au::make_quantity<decltype(au::Volts{} / au::TimeDerivative<Units>{})>(gains.kd)) {
+
+        }
+    };
+}
+
 template<typename Units>
 class Pid {
 public:
-    Pid(PidGains gains) : gains(gains) {};
+    Pid(PidConfig config) : gains(config.gains), max_voltage(config.max_voltage) {};
 
+    /**
+     * @brief Reset all of the Pid state
+     * 
+     */
     void reset() {
         this->p = au::ZERO;
         this->i = au::ZERO;
@@ -58,40 +86,33 @@ public:
 
         auto derivative = (delta_error / delta_time);
         
-        // TODO: Integral anti-windup
-        
-        using BaseUnits = au::UnitImpl<au::detail::DimT<Units>>;
         // calculate Pid terms
 
-        if (p.in(BaseUnits{}) < 0 && this->i.in(au::TimeIntegral<BaseUnits>{}) > 0) {
-            this->i = au::ZERO;
-        } else if (p.in(BaseUnits{}) > 0 && this->i.in(au::TimeIntegral<BaseUnits>{}) < 0) {
+        // integral reset on sign flip
+        if ((error < au::ZERO) != (last_error < au::ZERO)) {
             this->i = au::ZERO;
         }
-
+        
+        if (this->i > this->max_voltage) {
+            this->i = this->max_voltage;
+        } else if (this->i < -this->max_voltage) {
+            this->i = -this->max_voltage;
+        }
+        
         this->p = error * this->gains.kp;
         this->i = this->i + error * delta_time * this->gains.ki;
         this->d = (delta_error / delta_time) * this->gains.kd;
 
-        // TODO: Using `in` this way means that Pid constants are affected by the choice of unit
-        // eg. gains in Pid<Centi<Meters>> will effectively be 100x the gains in Pid<Meters>
-        // is there a way to avoid this?
-
-        // this might fix the issue, awaiting testing
-        using BaseUnits = au::UnitImpl<au::detail::DimT<Units>>;
-
-        double output = std::clamp(
-            this->p.in(BaseUnits{})
-            + this->i.in(au::TimeIntegral<BaseUnits>{})
-            + this->d.in(au::TimeDerivative<BaseUnits>{}), 
-            -12.0, 12.0
+        auto output = std::clamp(
+            this->p + this->i + this->d, 
+            au::volts(-12.0), au::volts(12.0)
         );
 
         // update Pid state
         this->last_error      = error;
         this->last_derivative = derivative;
         
-        return au::volts(output);
+        return output;
     };
 
     /**
@@ -110,7 +131,7 @@ public:
      * 
      * @endcode
     */
-    PidGains get_gains() {
+    PidGains get_gains() const {
         return this->gains;
     }
 
@@ -150,7 +171,7 @@ public:
      * 
      * @endcode
     */
-    au::Quantity<Units, double> get_error() {
+    au::Quantity<Units, double> get_error() const {
         return this->last_error;
     }
 
@@ -170,15 +191,45 @@ public:
      * 
      * @endcode
     */
-    au::Quantity<au::TimeDerivative<Units>, double> get_derivative() {
+    au::Quantity<au::TimeDerivative<Units>, double> get_derivative() const {
         return this->last_derivative;
     }
-protected:
-    PidGains gains;
 
-    au::Quantity<Units, double> p = au::ZERO;
-    au::Quantity<au::TimeIntegral<Units>, double> i = au::ZERO;
-    au::Quantity<au::TimeDerivative<Units>, double> d = au::ZERO;
+    /**
+     * @brief Get the P term of the Pid
+     * 
+     * @return au::Quantity<Units, double> 
+     */
+    au::Quantity<Units, double> get_p() const {
+        return this->p;
+    }
+
+    /**
+     * @brief Get the I term of the Pid
+     * 
+     * @return au::Quantity<au::TimeIntegral<Units>, double> 
+     */
+    au::Quantity<au::TimeIntegral<Units>, double> get_i() const {
+        return this->i;
+    }
+
+    /**
+     * @brief Get the D term of the Pid
+     * 
+     * @return au::Quantity<au::TimeDerivative<Units>, double> 
+     */
+    au::Quantity<au::TimeDerivative<Units>, double> get_d() const {
+        return this->d;
+    }
+protected:
+    using BaseUnits = au::UnitImpl<au::detail::DimT<Units>>;
+    detail::PidGainsWithUnits<BaseUnits> gains;
+    
+    au::Quantity<au::Volts, double> max_voltage;
+
+    au::Quantity<au::Volts, double> p = au::ZERO;
+    au::Quantity<au::Volts, double> i = au::ZERO;
+    au::Quantity<au::Volts, double> d = au::ZERO;
 
     au::Quantity<Units, double> last_error;
     au::Quantity<au::TimeDerivative<Units>, double> last_derivative;

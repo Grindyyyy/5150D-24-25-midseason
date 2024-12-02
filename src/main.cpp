@@ -1,6 +1,9 @@
 #include "main.h"
+#include "au/au.hpp"
+#include "dlib/controllers/feedforward.hpp"
 #include "dlib/dlib.hpp"
 #include "dlib/kinematics/odometry.hpp"
+#include "dlib/trajectories/trapezoid_profile.hpp"
 #include "dlib/utilities/error_calculation.hpp"
 #include "intake.hpp"
 #include "misc_pneumatics.hpp"
@@ -29,9 +32,9 @@ public:
 	dlib::Pid<Degrees> turn_pid;
 	dlib::ErrorDerivativeSettler<Degrees> turn_settler;
 
+	dlib::Feedforward<Meters> feedforward;
 	dlib::Odometry odom = dlib::Odometry();
 	std::unique_ptr<pros::Task> odom_updater = nullptr;
-	
 
 	void initialize() {
 		chassis.initialize();
@@ -42,49 +45,58 @@ public:
 		imu.initialize();
 	}
 
-	// Use PID to do a relative movement
-	void move_with_pid(double displacement, double max_time = 99999, int max_voltage = 12000) {
-		auto start_displacement = chassis.average_motor_displacement();
-		auto target_displacement = dlib::relative_target(start_displacement, inches(displacement));
+	
 
-		double elapsed_time = 0;
+	void move_ffwd(double displacement, double max_time = 99999, int max_voltage = 12000){
+		auto start_displacement = chassis.forward_motor_displacement();
+		dlib::TrapezoidProfile<Meters> profile {
+			meters_per_second_squared(3),
+			meters_per_second(1.6),
+			inches(displacement)
+		};
 
 		move_pid.reset();
 		move_settler.reset();
 
-		while (!move_settler.is_settled(move_pid.get_error(), move_pid.get_derivative())) {
+		auto elapsed_time = 0;
+		auto current_time = pros::millis();
+		auto start_time = pros::millis();
+	
+		while (true) {
+			current_time = pros::millis();
+			elapsed_time = current_time - start_time;
 
-			auto error = dlib::linear_error(target_displacement, chassis.average_motor_displacement());
+			auto setpoint = profile.calculate(milli(seconds)(elapsed_time));
 
-			if (elapsed_time > max_time) {
-				chassis.brake();
-				std::cout << "timed out" << "\n";
+			auto current_position = chassis.forward_motor_displacement();
+			auto target_position = dlib::relative_target(start_displacement, setpoint.position);
+
+			auto error = dlib::linear_error(target_position, current_position);
+
+			auto pid_voltage = move_pid.update(error, milli(seconds)(20));
+			auto ff_voltage = feedforward.calculate(setpoint.velocity, setpoint.acceleration);
+
+			std::cout << elapsed_time << "," << setpoint.velocity.in(meters_per_second) << "," << chassis.forward_motor_velocity().in(meters_per_second) << "\n";
+			
+			if(profile.stage(milli(seconds)(elapsed_time)) == dlib::TrapezoidProfileStage::Decelerating){
+				chassis.move_voltage(volts(0));
+			}
+
+			if(profile.stage(milli(seconds)(elapsed_time)) == dlib::TrapezoidProfileStage::Done){
 				break;
 			}
-			auto voltage = move_pid.update(error, milli(seconds)(20));
 
-			if(au::abs(voltage) > milli(volts)(max_voltage)){
-				if(voltage > volts(0)){
-					voltage = milli(volts)(max_voltage);
-				}
-				else{
-					voltage = milli(volts)(-max_voltage);
-				}
-			}
+			chassis.move_voltage(ff_voltage + pid_voltage);
 			
-			std::cout << "error: " << error << ", voltage:" << voltage << std::endl;
-			chassis.move_voltage(voltage);
-
-			elapsed_time += 5;
-			pros::delay(5);
+			pros::delay(20);
 		}
 		std::cout << "settled" << "\n";
 		chassis.move(0);
-	}	
+	}
 
 	// Use PID to do a relative movement
 	void turn_with_pid(double heading, double max_time, int max_voltage) {
-		auto target_heading = degrees(heading);
+		auto target_heading = au::degrees(heading);
 
 		double elapsed_time = 0;	
 
@@ -146,7 +158,7 @@ public:
 		if(reverse){
 			displacement = -displacement;
 		}
-		move_with_pid(displacement.in(inches), max_time, move_max_voltage);
+		move_ffwd(displacement.in(inches), max_time, move_max_voltage);
 	}
 
 	// Odom task
@@ -184,10 +196,11 @@ dlib::ImuConfig imu_config {
 };
 
 // Adjust these gains
-dlib::PidGains move_pid_gains {
-	47.3, 	// kp, porportional gain
-	0, 	// ki, integral gain
-	11.8	// kd, derivative gain
+dlib::PidConfig move_pid_gains {
+	{50, 	// kp, porportional gain
+	0, //0, 	// ki, integral gain
+	0},
+	volts(12) //11.8	// kd, derivative gain
 };
 
 dlib::ErrorDerivativeSettler<Meters> move_pid_settler {
@@ -201,10 +214,13 @@ dlib::ErrorTimeSettler<Meters> time_move_pid_settler {
 };
 
 // Adjust these gainsWWW
-dlib::PidGains turn_pid_gains {
-	50,
+dlib::PidConfig turn_pid_gains {
+	{
+	37,
 	0,
-	2.6
+	2.3
+	},
+	volts(12)
 };
 
 dlib::ErrorDerivativeSettler<Degrees> turn_pid_settler {
@@ -246,6 +262,16 @@ MiscPneumatics misc_pneumatics(
 	false
 );
 
+dlib::Feedforward<Meters> feedforward {
+	{
+		0.98304353748,
+	5.35,
+	1
+	}
+};
+
+
+
 // init robot + subsystems
 //Robot
 // Chassis + autonomous motion control will be inside of this class
@@ -259,23 +285,24 @@ Robot robot = {
 	move_pid_gains,
 	move_pid_settler,
 	turn_pid_gains,
-	turn_pid_settler
+	turn_pid_settler,
+	feedforward
 };
 
-void red_ring_side(){
+void blue_ring_side(){
 	// alliance stake
-	robot.move_with_pid(-14);
+	robot.move_ffwd(-14);
 	robot.move_to_point(-14, 6,true,700);
 	intake.max();
 	pros::delay(500);
 	// grab mogo
-	robot.move_with_pid(13);
+	robot.move_ffwd(13);
 	robot.move_to_point(8.7,-30.7,true,10000,5750,8000);
 	mogo.set_clamp_state(true);
 	// intake ring 1
 	robot.move_to_point(27.5,-33.9,false,10000,12000,8000);
 	// back up
-	robot.move_with_pid(-10);
+	robot.move_ffwd(-10);
 	// intake ring 2
 	robot.move_to_point(23.6,-46.3,false,10000,12000,8000);
 	// intake ring 3
@@ -287,35 +314,37 @@ void red_ring_side(){
 	robot.move_to_point(0,-39.3,false,10000,12000,8000);
 }
 
-void blue_ring_side(){
+void red_ring_side(){
 	// alliance stake
-	robot.move_with_pid(-14);
+	robot.move_ffwd(-14);
 	robot.move_to_point(-14, -6,true,700);
 	intake.max();
 	pros::delay(500);
 	// grab mogo
-	robot.move_with_pid(13);
+	robot.move_ffwd(13);
 	robot.move_to_point(8.7,30.7,true,10000,5750,8000);
 	mogo.set_clamp_state(true);
 	// intake ring 1
 	robot.move_to_point(27.5,33.9,false,10000,12000,8000);
 	// back up
-	robot.move_with_pid(-10);
+	robot.move_ffwd(-10);
 	// intake ring 2
-	robot.move_to_point(23.6,46.3,false,10000,12000,8000);
+	robot.move_to_point(23.6,45.3,false,10000,12000,8000);
 	// intake ring 3
-	robot.move_to_point(32,49.6,false,10000,12000,8000);
+	robot.move_to_point(32,48.6,false,10000,12000,8000);
 	pros::delay(500);
-	// back up
-	robot.move_to_point(21,38,true,10000,12000,8000);
+
+	robot.move_to_point(8.8,40.5,true,10000,12000,8000);
+	pros::delay(1000);
 	lift.lift_move(127);
-	robot.move_to_point(0,39.3,false,10000,12000,8000);
+	robot.move_to_point(3.1,41.4);
+
 }
 
-void red_goal_side(){
+void blue_goal_side(){
 	// grab 5th mogo
-	robot.move_with_pid(-30.4,1000);
-	robot.move_to_point(-40.8,-7.4,true);
+	robot.move_ffwd(-30.4,1000);
+	robot.move_to_point(-41.8,-7.4,true);
 	mogo.set_clamp_state(true);
 	// score preload
 	intake.max();
@@ -326,25 +355,27 @@ void red_goal_side(){
 	mogo.set_clamp_state(false);
 	// grab safe mogo
 	robot.move_to_point(-24.2,-11.6,false,1000);
-	robot.move_to_point(-25,-27.3,true,2000,5500);
+	robot.move_to_point(-27,-28.8,true,2000,5500);
 	mogo.set_clamp_state(true);
 	// indexer
 	intake.max();
-	pros::delay(1000);
+	pros::delay(2000);
+	
 	misc_pneumatics.set_indexer_state(true);
 	robot.move_to_point(-7.2,-51,false,1250);
 	misc_pneumatics.set_indexer_state(false);
 	pros::delay(1000);
-	robot.move_with_pid(-20);
+	robot.move_ffwd(-20);
 	pros::delay(500);
+	
 	// touch ladder
 	lift.lift_move(127);
-	robot.move_to_point(-26,-41.2);
+	robot.move_to_point(-32,-43.2);
 }
 
-void blue_goal_side(){
+void red_goal_side(){
 	// grab 5th mogo
-	robot.move_with_pid(-30.4,1000);
+	robot.move_ffwd(-30.4,1000);
 	robot.move_to_point(-40.8,7.4,true);
 	mogo.set_clamp_state(true);
 	// score preload
@@ -360,12 +391,12 @@ void blue_goal_side(){
 	mogo.set_clamp_state(true);
 	// indexer
 	intake.max();
-	pros::delay(1000);
+	pros::delay(2000);
 	misc_pneumatics.set_indexer_state(true);
 	robot.move_to_point(-7.2,51,false,1250);
 	misc_pneumatics.set_indexer_state(false);
 	pros::delay(1000);
-	robot.move_with_pid(-20);
+	robot.move_ffwd(-20);
 	pros::delay(500);
 	lift.lift_move(127);
 	robot.move_to_point(-26,41.2);
@@ -373,7 +404,7 @@ void blue_goal_side(){
 void skills(){
 	robot.intake.max();
 	pros::delay(750);
-	robot.move_with_pid(13.5);
+	robot.move_ffwd(13.5);
 	// grab mogo
 	robot.move_to_point(14.1, 20.1, true, 10000, 5500);
 	mogo.set_clamp_state(true);
@@ -387,7 +418,7 @@ void skills(){
 	robot.move_to_point(5.2, 42.9,false,10000,4000);
 	pros::delay(1500);
 	// back up
-	robot.move_with_pid(-20);
+	robot.move_ffwd(-20);
 	// ring 6
 	robot.move_to_point(18.4, 51.7);
 	// drop mogo
@@ -410,7 +441,7 @@ void skills(){
 	robot.move_to_point(5.1, -47.4,false,10000,4000);
 	pros::delay(1500);
 	// back up
-	robot.move_with_pid(-23);
+	robot.move_ffwd(-23);
 	// ring 6
 	robot.move_to_point(18.1, -56.7);
 	// drop mogo
@@ -422,10 +453,11 @@ void skills(){
 	intake.max();
 	// ring 1 kinda
 	robot.move_to_point(77.4, -30.3);
-	pros::delay(500);
+	pros::delay(750);
 	intake.stop();
 	// grab mogo.
 	robot.move_to_point(106.7, -5.6, true, 10000, 5500);
+	mogo.set_clamp_state(true);
 	intake.max();
 	// grab more ring
 	robot.move_to_point(85.2, -48.2);
@@ -442,7 +474,8 @@ rd::Selector selector({
 	{"Red Goal Side", red_goal_side},
 	{"Blue Ring Side", blue_ring_side},
 	{"Blue Goal Side", blue_goal_side},
-	{"Skills", skills}
+	{"Skills", skills},
+
 });
 
 rd::Console console;
@@ -461,27 +494,6 @@ void initialize() {
 	// redirect: redirect a alliance color ring onto wall stake mech
 	// fling: fling non-alliance rings so they dont get scored
 	// shouldn't interfere with auton
-	pros::Task intake_task([&]() {
-		while(true){
-			if(intake.intake_filter()){
-				if(intake.auton){
-					if(intake.redirect){
-						intake.max();
-						pros::delay(70);
-						intake.move(-50);
-						pros::delay(800);
-					}
-					else{
-						intake.max();
-						pros::delay(200);
-						intake.rev();
-						pros::delay(500);
-					}
-				}
-			}
-		pros::delay(20);
-		}
-	});
 
 	pros::Task screen_task([&]() {
         while (true) {
@@ -511,8 +523,16 @@ void competition_initialize() {}
 void autonomous() {
 	console.focus();
 	//skills();
-	selector.run_auton();
+	//selector.run_auton();
 	//
+	auto start_time = pros::millis();
+	//robot.turn_with_pid(90,99999,12000);
+	robot.move_ffwd(-48);
+	//117.7, -43.7
+	//95.7 -74.8 true
+	auto elapsed_time = pros::millis() - start_time;
+
+	std::cout << "settled in " << elapsed_time << " milliseconds." << "\n";
 }	
 
 void opcontrol() {
@@ -520,12 +540,12 @@ void opcontrol() {
 	bool arm_state = false;
 	bool redirect_bool = false;
 	int range = 16000;
+	lift.lift_move(-20);
 	intake.set_mode(false);
 	intake.set_alliance(Alliance::Red);
 	// Try arcade drive control!
 	pros::Controller master = pros::Controller(pros::E_CONTROLLER_MASTER);
 	while(true){
-		
 		// ------------------- //
 		// Chassis Controls
 		// ------------------- //
@@ -559,11 +579,12 @@ void opcontrol() {
 		// ------------------- //
 		// Lift Controls
 		// ------------------- //
+		
 		if(master.get_digital_new_press(pros::E_CONTROLLER_DIGITAL_L1)){
-			lift.lift_toggle = true;
+			lift.lift_move(90);
 		}
 		if(master.get_digital_new_press(pros::E_CONTROLLER_DIGITAL_L2)){
-			lift.lift_toggle = false;
+			lift.lift_move(-30);
 		}
 
 		// ------------------- //
@@ -599,9 +620,6 @@ void opcontrol() {
 			redirect_bool = !redirect_bool;
 			intake.set_redirect(redirect_bool);
 		}
-
-		// Lift task override
-		lift.lift_range(16000);
 
 		pros::delay(20);
 	}

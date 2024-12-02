@@ -51,29 +51,29 @@ void Chassis::initialize() {
     right_motors.raw.set_gearing_all(this->drive_gearset);
 }
 
-void Chassis::move(double power) {
-    this->left_motors.send(power);
-    this->right_motors.send(power);
+void Chassis::move(const int32_t power) {
+    this->left_motors.move(power);
+    this->right_motors.move(power);
 }
 
-void Chassis::move_voltage(au::Quantity<au::Volts, double> voltage) {
-    this->left_motors.send_voltage(voltage);
-    this->right_motors.send_voltage(voltage);
+void Chassis::move_voltage(const au::Quantity<au::Volts, double> voltage) {
+    this->left_motors.move_voltage(voltage);
+    this->right_motors.move_voltage(voltage);
 }
 
-void Chassis::turn(double power) {
-    this->left_motors.send(-power);
-    this->right_motors.send(power);
+void Chassis::turn(const int32_t power) {
+    this->left_motors.move(-power);
+    this->right_motors.move(power);
 }
 
-void Chassis::turn_voltage(au::Quantity<au::Volts, double> voltage) {
-    this->left_motors.send_voltage(-voltage);
-    this->right_motors.send_voltage(voltage);
+void Chassis::turn_voltage(const au::Quantity<au::Volts, double> voltage) {
+    this->left_motors.move_voltage(-voltage);
+    this->right_motors.move_voltage(voltage);
 }
 
-void Chassis::arcade(double power, double turn) {
-    this->left_motors.send(power - turn);
-    this->right_motors.send(power + turn);
+void Chassis::arcade(const int32_t power, const int32_t turn) {
+    this->left_motors.move(power - turn);
+    this->right_motors.move(power + turn);
 }
 
 void Chassis::brake() {
@@ -81,7 +81,7 @@ void Chassis::brake() {
     this->right_motors.raw.brake();
 }
 
-au::Quantity<au::Meters, double> Chassis::revolutions_to_displacement(au::Quantity<au::Revolutions, double> revolutions) {
+au::Quantity<au::Meters, double> Chassis::revolutions_to_displacement(const au::Quantity<au::Revolutions, double> revolutions) const {
     // TODO: move the motor position -> wheel position conversions to a dedicated kinematics class
 
     // not sure if there's a unit-safe way to do this
@@ -94,7 +94,7 @@ au::Quantity<au::Meters, double> Chassis::revolutions_to_displacement(au::Quanti
     return au::meters(linear_distance);
 }
 
-au::Quantity<au::MetersPerSecond, double> Chassis::rpm_to_velocity(au::Quantity<au::Rpm, double> rpm) {
+au::Quantity<au::MetersPerSecond, double> Chassis::rpm_to_velocity(const au::Quantity<au::Rpm, double> rpm) const {
     // TODO: move the motor velocity -> wheel velocity conversions to a dedicated kinematics class
     
     // not sure if there's a unit-safe way to do this
@@ -123,7 +123,7 @@ au::Quantity<au::Meters, double> Chassis::right_motors_displacement() {
     return displacement;
 }
 
-au::Quantity<au::Meters, double> Chassis::average_motor_displacement() {
+au::Quantity<au::Meters, double> Chassis::forward_motor_displacement() {
     return (this->left_motors_displacement() + this->right_motors_displacement()) / 2.0;
 }
 
@@ -143,7 +143,7 @@ au::Quantity<au::MetersPerSecond, double> Chassis::right_motors_velocity() {
     return velocity;
 }
 
-au::Quantity<au::MetersPerSecond, double> Chassis::average_motor_velocity() {
+au::Quantity<au::MetersPerSecond, double> Chassis::forward_motor_velocity() {
     return (this->left_motors_velocity() + this->left_motors_velocity()) / 2.0;
 }
 

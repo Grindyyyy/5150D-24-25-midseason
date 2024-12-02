@@ -14,9 +14,32 @@ struct MotorGroupConfig {
 
 class MotorGroup {
 public:
-    void send(double power);
-    void send_voltage(au::Quantity<au::Volts, double> voltage);
+    /**
+     * @brief Move the motorgroup with a joystick input
+     * 
+     * @param power the joystick input value
+     */
+    void move(const double power);
+
+    /**
+     * @brief Move the MotorGroup with a given voltage
+     * 
+     * @param voltage the voltage to send to the motors
+     */
+    void move_voltage(const au::Quantity<au::Volts, double> voltage);
+
+    /**
+     * @brief Get the MotorGroup average position in revolutions
+     * 
+     * @return revolutions
+     */
     au::Quantity<au::Revolutions, double> get_position();
+
+    /**
+     * @brief Get the MotorGroup average velocity in rpm
+     * 
+     * @return rpm
+     */
     au::Quantity<au::Rpm, double> get_velocity();
 
     MotorGroup(MotorGroupConfig config);

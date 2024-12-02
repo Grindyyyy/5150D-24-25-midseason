@@ -65,21 +65,26 @@ public:
         // - we have been below the threshold for the settle time
         if (this->is_settling && this->time_below_threshold >= this->settle_time && absolute_error <= this->error_threshold) {
             return true;
-
         } else {
             return false;
         }
     }
 
+    /**
+     * @brief Reset all of the settler state
+     * 
+     */
     void reset() {
         this->is_settling = false;
         this->time_below_threshold = au::ZERO;
     }
 protected:
     bool is_settling;
-    au::Quantity<Units, double> error_threshold;
-    au::Quantity<au::Seconds, double> settle_time;
     au::Quantity<au::Seconds, double> time_below_threshold;
+
+    const au::Quantity<Units, double> error_threshold;
+    const au::Quantity<au::Seconds, double> settle_time;
+    
 };
 
 }

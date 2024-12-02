@@ -1,4 +1,5 @@
 #pragma once
+#include <iostream>
 #include "au/au.hpp"
 
 namespace dlib {
@@ -16,6 +17,24 @@ struct FeedforwardGains {
     /** The voltage needed to induce a given acceleration */
     double ka = 0;
 };
+
+namespace detail {
+    template<typename Units>
+    struct FeedforwardGainsWithUnits {
+        au::Quantity<au::Volts, double> ks;
+        au::Quantity<decltype(au::Volts{} / au::TimeDerivative<Units>{}), double> kv;
+        au::Quantity<decltype(au::Volts{} / au::Time2ndDerivative<Units>{}), double> ka;
+
+        FeedforwardGainsWithUnits(
+            FeedforwardGains gains
+        ) : 
+            ks(au::volts(gains.ks)), 
+            kv(au::make_quantity<decltype(au::Volts{} / au::TimeDerivative<Units>{})>(gains.kv)), 
+            ka(au::make_quantity<decltype(au::Volts{} / au::Time2ndDerivative<Units>{})>(gains.ka)) {
+
+        }
+    };
+}
 
 template<typename Units>
 class Feedforward {
@@ -43,16 +62,16 @@ public:
      * @endcode
     */
     au::Quantity<au::Volts, double> calculate(
-    au::Quantity<au::TimeDerivative<Units>, double> target_velocity, 
-    au::Quantity<au::Time2ndDerivative<Units>, double> target_acceleration
+        const au::Quantity<au::TimeDerivative<Units>, double> target_velocity, 
+        const au::Quantity<au::Time2ndDerivative<Units>, double> target_acceleration
     ) {
-        using BaseUnits = au::UnitImpl<au::detail::DimT<Units>>;
+        auto s = au::copysign(gains.ks, target_velocity);
+        auto v = gains.kv * target_velocity;
+        auto a = gains.ka * target_acceleration;
 
-        auto s = std::copysign(gains.ks, target_velocity.in(au::TimeDerivative<BaseUnits>{}));
-        auto v = gains.kv * target_velocity.in(au::TimeDerivative<BaseUnits>{});
-        auto a = gains.ka * target_acceleration.in(au::Time2ndDerivative<BaseUnits>{});
+        auto output = s + v + a;
 
-        return au::volts(s + v + a);
+        return output;
     }
 
     /**
@@ -71,7 +90,7 @@ public:
      * 
      * @endcode
     */
-    FeedforwardGains get_gains() {
+    FeedforwardGains get_gains() const {
         return this->gains;
     }
 
@@ -96,7 +115,7 @@ public:
     }
 
 protected:
-    FeedforwardGains gains;
-
+    using BaseUnits = au::UnitImpl<au::detail::DimT<Units>>;
+    detail::FeedforwardGainsWithUnits<BaseUnits> gains;
 };
 }

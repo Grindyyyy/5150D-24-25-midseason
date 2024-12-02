@@ -30,7 +30,7 @@ public:
      * 
      * @b Example
      * @code {.cpp}
-     * void opcontrol(){
+
      * // Construct a chassis config
      * dlib::ChassisConfig chassis_config({
 	 *  {1, 2, 3},	// left motor ports
@@ -49,12 +49,13 @@ public:
     void initialize();
 
     /**
-     * @brief Move the chassis
+     * @brief Move the Chassis with a joystick input
      * 
+     * @param power the joystick input value
+     *
      * @b Example
      * @code {.cpp}
-     * void opcontrol(){
-     * // Construct a chassis config
+     * // Construct a ChassisConfig
      * dlib::ChassisConfig chassis_config({
 	 *  {1, 2, 3},	// left motor ports
 	 *  {4, 5, 6},	// right motor ports
@@ -62,24 +63,30 @@ public:
 	 *  inches(3.25)	// the drivebase wheel diameter
 	 * });
      * 
-     * // Construct a chassis
+     * // Construct a Chassis
 	 * dlib::Chassis chassis(chassis_config);
      * 
      * // Move the chassis at max forward (127)
      * chassis.move(127);
      * @endcode
     */
-    void move(double power);
+    void move(const int32_t power);
 
-    void move_voltage(au::Quantity<au::Volts, double> voltage);
+    /**
+     * @brief Move the Chassis with a given voltage
+     * 
+     * @param voltage the voltage to send to the motors
+     */
+    void move_voltage(const au::Quantity<au::Volts, double> voltage);
     
     /**
-     * @brief Turn the chassis
-     * 
+     * @brief Turn the Chassis with a joystick input
+     *
+     * @param power the joystick input value
+     *
      * @b Example
      * @code {.cpp}
-     * void opcontrol(){
-     * // Construct a chassis config
+     * // Construct a Chassis config
      * dlib::ChassisConfig chassis_config({
 	 *  {1, 2, 3},	// left motor ports
 	 *  {4, 5, 6},	// right motor ports
@@ -94,16 +101,21 @@ public:
      * chassis.turn(127);
      * @endcode
     */
-    void turn(double power);
+    void turn(const int32_t power);
 
-    void turn_voltage(au::Quantity<au::Volts, double> voltage);
     /**
-     * @brief Turn the chassis
+     * @brief Turn the chassis with a given voltage
+     * 
+     * @param voltage the voltage to send to the motors
+     */
+    void turn_voltage(const au::Quantity<au::Volts, double> voltage);
+    
+    /**
+     * @brief Turn the Chassis
      * 
      * @b Example
      * @code {.cpp}
-     * void opcontrol(){
-     * // Construct a chassis config
+     * // Construct a ChassisConfig
      * dlib::ChassisConfig chassis_config({
 	 *  {1, 2, 3},	// left motor ports
 	 *  {4, 5, 6},	// right motor ports
@@ -111,8 +123,8 @@ public:
 	 *  inches(3.25)	// the drivebase wheel diameter
 	 * });
      * 
-     * // Construct a chassis
-	 * dlib::Chassis chassis(chassis_config);
+     * // Construct a Chassis
+	 * dlib::Chassis Chassis(chassis_config);
      * 
      * // Create a controller
      * pros::Controller master = pros::Controller(pros::E_CONTROLLER_MASTER);
@@ -125,20 +137,71 @@ public:
      * chassis.arcade(power, turn);
      * @endcode
     */
-    void arcade(double power, double turn);
+    void arcade(const int32_t power, const int32_t turn);
 
+    /**
+     * @brief Brake the Chassis
+     * 
+     */
     void brake();
     
-    au::Quantity<au::Meters, double> revolutions_to_displacement(au::Quantity<au::Revolutions, double> revolutions);
-    au::Quantity<au::MetersPerSecond, double> rpm_to_velocity(au::Quantity<au::Rpm, double> rpm);
+    /**
+     * @brief Convert from motor revolutions to linear displacement for the Chassis
+     * 
+     * @param revolutions the number of motor revolutions
+     * @return linear displacement
+     */
+    au::Quantity<au::Meters, double> revolutions_to_displacement(const au::Quantity<au::Revolutions, double> revolutions) const;
     
+    /**
+     * @brief Convert from motor rpm to linear velocity for the Chassis
+     * 
+     * @param rpm 
+     * @return linear velocity
+     */
+    au::Quantity<au::MetersPerSecond, double> rpm_to_velocity(const au::Quantity<au::Rpm, double> rpm) const;
+    
+    /**
+     * @brief Get the average linear displacement of the left side of the Chassis
+     * 
+     * @return the linear displacement of the left side of the Chassis
+     */
     au::Quantity<au::Meters, double> left_motors_displacement();
+
+    /**
+     * @brief Get the average linear displacement of the right side of the Chassis
+     * 
+     * @return the linear displacement of the right side of the Chassis
+     */
     au::Quantity<au::Meters, double> right_motors_displacement();
-    au::Quantity<au::Meters, double> average_motor_displacement();
+
+    /**
+     * @brief Get the forward linear displacment of the Chassis
+     * 
+     * @return the forward linear displacement of the Chassis
+     */
+    au::Quantity<au::Meters, double> forward_motor_displacement();
     
+    /**
+     * @brief Get the linear velocity of the left side of the Chassis
+     * 
+     * @return the linear velocity of the left side of the Chassis
+     */
     au::Quantity<au::MetersPerSecond, double> left_motors_velocity();
+
+    /**
+     * @brief Get the linear velocity of the right side of the Chassis
+     * 
+     * @return the linear velocity of the right side of the Chassis
+     */
     au::Quantity<au::MetersPerSecond, double> right_motors_velocity();
-    au::Quantity<au::MetersPerSecond, double> average_motor_velocity();
+
+    /**
+     * @brief Get the forward linear velocity of the Chassis
+     * 
+     * @return the forward linear velocity of the Chassis
+     */
+    au::Quantity<au::MetersPerSecond, double> forward_motor_velocity();
 
     Chassis(ChassisConfig config);
 

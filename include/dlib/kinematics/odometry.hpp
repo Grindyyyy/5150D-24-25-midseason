@@ -4,8 +4,15 @@
 
 namespace dlib {
 
+/**
+ * @brief A point in 2d space
+ * 
+ */
 struct Vector2d {
+    /** The x component of the point */
     au::Quantity<au::Meters, double> x;
+
+    /** The y component of the point */
     au::Quantity<au::Meters, double> y;
 
     Vector2d(
@@ -14,9 +21,18 @@ struct Vector2d {
     );
 };
 
+/**
+ * @brief A pose in 2d space
+ * 
+ */
 struct Pose2d {
+    /** The x component of the pose */
     au::Quantity<au::Meters, double> x;
+
+    /** The y component of the pose */
     au::Quantity<au::Meters, double> y;
+
+    /** The heading of the pose */
     au::Quantity<au::Degrees, double> theta;
 
     Pose2d(
@@ -28,20 +44,54 @@ struct Pose2d {
 
 class Odometry {
 public:
-    Odometry(au::Quantity<au::Meters, double> horizontal_wheel_offset = au::ZERO);
+    Odometry(const au::Quantity<au::Meters, double> horizontal_wheel_offset = au::ZERO);
 
+    /**
+     * @brief Update the odometry tracking state
+     * 
+     * @param left_displacement the linear displacement of the left side of the Chassis
+     * @param right_displacement the linear displacement of the right side of the Chassis
+     * @param horizontal_displacement the linear displacement from any horizontal tracking
+     * @param heading the current heading
+     */
     void update(
-        au::Quantity<au::Meters, double> left_displacement,
-        au::Quantity<au::Meters, double> right_displacement,
-        au::Quantity<au::Meters, double> horizontal_displacement,
-        au::Quantity<au::Degrees, double> heading
+        const au::Quantity<au::Meters, double> left_displacement,
+        const au::Quantity<au::Meters, double> right_displacement,
+        const au::Quantity<au::Meters, double> horizontal_displacement,
+        const au::Quantity<au::Degrees, double> heading
     );
 
+    /**
+     * @brief Get the current position of the robot
+     * 
+     * @return Pose2d 
+     */
     Pose2d get_position();
-    void set_position(Pose2d pose);
 
-    au::Quantity<au::Meters, double> displacement_to(Vector2d point, bool reverse = false);
-    au::Quantity<au::Degrees, double> angle_to(Vector2d point, bool reverse = false);
+    /**
+     * @brief Set the current position of the robot
+     * 
+     * @param pose 
+     */
+    void set_position(const Pose2d pose);
+
+    /**
+     * @brief Calculate the displacement from the current position of the robot to a point
+     * 
+     * @param point the end point
+     * @param reverse if the robot will move in reverse
+     * @return the displacement to the point
+     */
+    au::Quantity<au::Meters, double> displacement_to(const Vector2d point, const bool reverse = false);
+
+    /**
+     * @brief Calculate the angle from the current position of the robot to a point
+     * 
+     * @param point the end point
+     * @param reverse if the robot will move in reverse
+     * @return the angle to the point
+     */
+    au::Quantity<au::Degrees, double> angle_to(const Vector2d point, const bool reverse = false);
 
 protected:
     Pose2d position = Pose2d(au::ZERO, au::ZERO, au::ZERO);
@@ -50,7 +100,7 @@ protected:
     au::Quantity<au::Meters, double> previous_horizontal = au::ZERO;
     au::Quantity<au::Radians, double> previous_theta = au::ZERO;
 
-    au::Quantity<au::Meters, double> horizontal_wheel_offset = au::ZERO;
+    const au::Quantity<au::Meters, double> horizontal_wheel_offset = au::ZERO;
 
     pros::Mutex mutex{};
 };

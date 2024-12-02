@@ -3,11 +3,11 @@
 
 namespace dlib {
 
-// TODO: Technically these field names are only correct provided that the user uses a nonderivative unit
-// like position or rotation. If the user uses velocity, for example, the 'correct' field names would be (velocity, acceleration, jerk)
-// not sure there's any solution to this without making the field names needlessly vague
-
-template<typename Units>
+template<
+    typename Units
+> requires 
+    au::HasSameDimension<Units, au::Meters>::value || 
+    au::HasSameDimension<Units, au::Radians>::value
 struct ProfileSetpoint {
     au::Quantity<Units, double> position;
     au::Quantity<au::TimeDerivative<Units>, double> velocity;
@@ -23,6 +23,10 @@ struct ProfileSetpoint {
         acceleration(acceleration) {
 
     };
+
+    ProfileSetpoint negative() {
+        return ProfileSetpoint(-position, -velocity, -acceleration);
+    }
 };
 
 

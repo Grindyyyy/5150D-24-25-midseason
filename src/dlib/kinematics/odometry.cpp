@@ -17,17 +17,17 @@ Pose2d::Pose2d(
 }
 
 Odometry::Odometry(
-    au::Quantity<au::Meters, double> horizontal_wheel_offset
+    const au::Quantity<au::Meters, double> horizontal_wheel_offset
 ) : horizontal_wheel_offset(horizontal_wheel_offset) 
 {
 
 }
 
 void Odometry::update(
-    au::Quantity<au::Meters, double> left_displacement, 
-    au::Quantity<au::Meters, double> right_displacement, 
-    au::Quantity<au::Meters, double> horizontal_displacement,
-    au::Quantity<au::Degrees, double> rotation
+    const au::Quantity<au::Meters, double> left_displacement, 
+    const au::Quantity<au::Meters, double> right_displacement, 
+    const au::Quantity<au::Meters, double> horizontal_displacement,
+    const au::Quantity<au::Degrees, double> rotation
 ) {
     std::lock_guard<pros::Mutex> guard(this->mutex);
 
@@ -70,11 +70,11 @@ Pose2d Odometry::get_position() {
     return this->position;
 }
 
-void Odometry::set_position(Pose2d position) {
+void Odometry::set_position(const Pose2d position) {
     this->position = position;
 }
 
-au::Quantity<au::Meters, double> Odometry::displacement_to(Vector2d point, bool reverse) {
+au::Quantity<au::Meters, double> Odometry::displacement_to(const Vector2d point, const bool reverse) {
     auto target_x = point.x;
     auto target_y = point.y;
 
@@ -94,7 +94,7 @@ au::Quantity<au::Meters, double> Odometry::displacement_to(Vector2d point, bool 
     return dist;
 }
 
-au::Quantity<au::Degrees, double> Odometry::angle_to(Vector2d point, bool reverse) {
+au::Quantity<au::Degrees, double> Odometry::angle_to(const Vector2d point, const bool reverse) {
     auto target_x = point.x;
     auto target_y = point.y;
 

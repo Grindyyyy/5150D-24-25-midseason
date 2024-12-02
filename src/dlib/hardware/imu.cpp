@@ -16,8 +16,6 @@ void Imu::initialize() {
 }
 
 au::Quantity<au::Degrees, double> Imu::get_rotation() {
-    // TODO: drift correction in addition to scaling?
-    
     auto raw_reading = au::degrees(this->raw.get_rotation());
     auto corrected_reading = raw_reading * this->scalar;
     return corrected_reading;
