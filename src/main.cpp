@@ -469,6 +469,19 @@ void skills(){
 	robot.move_to_point(91.2, -52.2);
 }
 
+void awp(){
+	robot.move_ffwd(-2);
+	robot.chassis.left_motors.move_voltage(volts(-12));
+		pros::delay(650);
+	robot.chassis.brake();
+	robot.move_ffwd(-4);
+	intake.max();
+	pros::delay(1700);
+	intake.stop();
+
+	//1.9, 17.78
+}
+
 rd::Selector selector({
     {"Red Ring Side", red_ring_side},
 	{"Red Goal Side", red_goal_side},
@@ -527,12 +540,14 @@ void autonomous() {
 	//
 	auto start_time = pros::millis();
 	//robot.turn_with_pid(90,99999,12000);
-	robot.move_ffwd(-48);
+	awp();
 	//117.7, -43.7
 	//95.7 -74.8 true
 	auto elapsed_time = pros::millis() - start_time;
 
 	std::cout << "settled in " << elapsed_time << " milliseconds." << "\n";
+	dlib::Pose2d position = robot.odom.get_position();
+std::cout << position.x.in(inches) << ", " << position.y.in(inches) << ", " << position.theta.in(degrees) << "\n";
 }	
 
 void opcontrol() {
