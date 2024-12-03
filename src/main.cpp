@@ -265,7 +265,7 @@ dlib::PidConfig move_pid_gains {
 
 // Left DB move PID gains
 dlib::PidConfig left_move_pid_gains {
-	{5,
+	{500,
 	0,
 	0},
 	volts(12)
@@ -676,7 +676,7 @@ void autonomous() {
 	console.focus();
 
 	auto start_time = pros::millis();
-	robot.move_left_with_pid(inches(-12));
+	robot.move_left_with_pid(inches(-24));
 	auto elapsed_time = pros::millis() - start_time;
 
 	std::cout << "settled in " << elapsed_time << " milliseconds." << "\n";
