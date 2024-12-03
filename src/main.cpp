@@ -43,6 +43,12 @@ public:
 	dlib::Odometry odom = dlib::Odometry();
 	std::unique_ptr<pros::Task> odom_updater = nullptr;
 
+	// ------------------------------ //
+	// Robot Class Methods //
+	// ------------------------------ //
+
+	// Run this in initialize function
+	// Makes sure that everything is set up inside of robot class for autonomous
 	void initialize() {
 		chassis.initialize();
 
@@ -52,6 +58,7 @@ public:
 		imu.initialize();
 	}
 
+	// Only move the left side of the drivebase using PID
 	void move_left_with_pid(Quantity<Meters, double> displacement){
 		auto start_displacement = chassis.left_motors_displacement();
 		auto target_displacement = dlib::relative_target(start_displacement, displacement);
@@ -69,6 +76,7 @@ public:
 		}
 	}
 
+	// Only move the right side of the drivetrain using PID
 	void move_right_with_pid(Quantity<Meters, double> displacement){
 		auto start_displacement = chassis.right_motors_displacement();
 		auto target_displacement = dlib::relative_target(start_displacement, displacement);
@@ -86,7 +94,7 @@ public:
 		}
 	}
 
-
+	// Move the chassis using PID and feedforward
 	void move_ffwd(double displacement, double max_time = 99999, int max_voltage = 12000){
 		auto start_displacement = chassis.forward_motor_displacement();
 		dlib::TrapezoidProfile<Meters> profile {
@@ -134,7 +142,7 @@ public:
 		chassis.move(0);
 	}
 
-	// Use PID to do a relative movement
+	// Turn the chassis using PID
 	void turn_with_pid(double heading, double max_time, int max_voltage) {
 		auto target_heading = au::degrees(heading);
 
@@ -184,6 +192,7 @@ public:
 		chassis.right_motors.raw.brake();
 	}
 
+	// Use arctan formula to turn to a relative point
 	void turn_to_point(double x, double y, bool reverse = false, double max_time = 15000, int max_voltage = 12000) {
 		auto point = dlib::Vector2d(inches(x), inches(y));
 		auto angle = odom.angle_to(point, reverse);
@@ -191,6 +200,7 @@ public:
 		turn_with_pid(angle.in(degrees), max_time,max_voltage);
 	}
 
+	// Use pythagorean formula to move to a relative point
 	void move_to_point(double x, double y, bool reverse = false, double max_time = 3000, int move_max_voltage = 12000, int turn_max_voltage = 12000) {
 		auto point = dlib::Vector2d(inches(x), inches(y));
 		turn_to_point(x, y, reverse,max_time, turn_max_voltage);
@@ -201,6 +211,7 @@ public:
 		move_ffwd(displacement.in(inches), max_time, move_max_voltage);
 	}
 
+	// Start the odom task responsible for updating coordinates
 	// Odom task
 	void start_odom() {
 		odom_updater = std::make_unique<pros::Task>([this]() {
@@ -218,8 +229,9 @@ public:
 	}
 };
 
-// CONFIGS
-// adjust these to make robot do different stuff
+// ------------------------------ //
+// Chassis + IMU Configurations //
+// ------------------------------ //
 
 // Create a config for everything used in the Robot class
 dlib::ChassisConfig chassis_config {
@@ -235,7 +247,11 @@ dlib::ImuConfig imu_config {
 	1.0132	// optional imu scaling constant
 };
 
-// Adjust these gains
+// ------------------------------ //
+// Move PID Gains + Settler //
+// ------------------------------ //
+
+// Chassis move PID gains
 dlib::PidConfig move_pid_gains {
 	{50, 	// kp, porportional gain
 	0, //0, 	// ki, integral gain
@@ -243,16 +259,7 @@ dlib::PidConfig move_pid_gains {
 	volts(12) //11.8	// kd, derivative gain
 };
 
-dlib::ErrorDerivativeSettler<Meters> move_pid_settler {
-	inches(0.5),		// error threshold, the maximum error the pid can settle at
-	meters_per_second(0.005) // derivative threshold, the maximum instantaneous error over time the pid can settle at
-};
-
-dlib::ErrorTimeSettler<Meters> time_move_pid_settler {
-	inches(0.5),		// error threshold, the maximum error the pid can settle at
-	milli(seconds)(100) // derivative threshold, the maximum instantaneous error over time the pid can settle at
-};
-
+// Left DB move PID gains
 dlib::PidConfig left_move_pid_gains {
 	{5,
 	0,
@@ -260,11 +267,7 @@ dlib::PidConfig left_move_pid_gains {
 	volts(12)
 };
 
-dlib::ErrorDerivativeSettler<Meters> left_move_pid_settler {
-	inches(0.5),		// error threshold, the maximum error the pid can settle at
-	meters_per_second(0.005) // derivative threshold, the maximum instantaneous error over time the pid can settle at
-};
-
+// Right DB move PID gains
 dlib::PidConfig right_move_pid_gains {
 	{5,
 	0,
@@ -272,12 +275,38 @@ dlib::PidConfig right_move_pid_gains {
 	volts(12)
 };
 
+// Chassis move PID settler
+dlib::ErrorDerivativeSettler<Meters> move_pid_settler {
+	inches(0.5),		// error threshold, the maximum error the pid can settle at
+	meters_per_second(0.005) // derivative threshold, the maximum instantaneous error over time the pid can settle at
+};
+
+// Left DB move PID settler
+dlib::ErrorDerivativeSettler<Meters> left_move_pid_settler {
+	inches(0.5),		// error threshold, the maximum error the pid can settle at
+	meters_per_second(0.005) // derivative threshold, the maximum instantaneous error over time the pid can settle at
+};
+
+// Right DB move PID settler
 dlib::ErrorDerivativeSettler<Meters> right_move_pid_settler {
 	inches(0.5),		// error threshold, the maximum error the pid can settle at
 	meters_per_second(0.005) // derivative threshold, the maximum instantaneous error over time the pid can settle at
 };
 
-// Adjust these gainsWWW
+// Chassis move Feedforward gains
+dlib::Feedforward<Meters> feedforward {
+	{
+		0.98304353748,
+	5.35,
+	1
+	}
+};
+
+// ------------------------------ //
+// Turn PID Gains + Settler //
+// ------------------------------ //
+
+// Chassis turn PID gains
 dlib::PidConfig turn_pid_gains {
 	{
 	37,
@@ -287,36 +316,32 @@ dlib::PidConfig turn_pid_gains {
 	volts(12)
 };
 
+// Chassis turn PID settler
 dlib::ErrorDerivativeSettler<Degrees> turn_pid_settler {
 	degrees(1),		// error threshold, the maximum error the pid can settle at
 	degrees_per_second(0.2)	// derivative threshold, the maximum instantaneous error over time the pid can settle at
 };
 
-dlib::ErrorTimeSettler<Degrees> time_turn_pid_settler {
-	degrees(1),		// error threshold, the maximum error the pid can settle at
-	milli(seconds)(100) // derivative threshold, the maximum instantaneous error over time the pid can settle at
-};
-
+// Intake object
 Intake intake(
 	-8,
 	3,
 	4
 );
 
+// Mogo object
 Mogo mogo(
 	'H',
 	false
 );
 
-// Lift
-// anything relating to a lift will be included inside of this class.
+// Lift object
 Lift lift(
 	-1,
 	10
 );
 
-// MiscPneumatics
-// any miscellaneous pneumatics will be put here
+// MiscPneumatics object
 MiscPneumatics misc_pneumatics(
 	'G',
 	false,
@@ -326,19 +351,8 @@ MiscPneumatics misc_pneumatics(
 	false
 );
 
-dlib::Feedforward<Meters> feedforward {
-	{
-		0.98304353748,
-	5.35,
-	1
-	}
-};
-
-
-
-// init robot + subsystems
-//Robot
-// Chassis + autonomous motion control will be inside of this class
+// Robot object
+// Put everything in this class
 Robot robot = {
 	chassis_config,
 	imu_config,
@@ -357,6 +371,11 @@ Robot robot = {
 	feedforward
 };
 
+// ------------------------------ //
+// Autonomous //
+// ------------------------------ //
+
+// 4 rings (1 on alliance stake, 3 on mogo) = 8 points
 void blue_ring_side(){
 	// alliance stake
 	robot.move_ffwd(-14);
@@ -382,6 +401,7 @@ void blue_ring_side(){
 	robot.move_to_point(0,-39.3,false,10000,12000,8000);
 }
 
+// 4 rings (1 on alliance stake, 3 on mogo) = 8 points
 void red_ring_side(){
 	// alliance stake
 	robot.move_ffwd(-14);
@@ -409,6 +429,7 @@ void red_ring_side(){
 
 }
 
+// 3 rings (1 on 5th mogo, 2 on safe mogo) = 7 points
 void blue_goal_side(){
 	// grab 5th mogo
 	robot.move_ffwd(-30.4,1000);
@@ -441,6 +462,7 @@ void blue_goal_side(){
 	robot.move_to_point(-32,-43.2);
 }
 
+// 3 rings (1 on 5th mogo, 2 on safe mogo) = 7 points
 void red_goal_side(){
 	// grab 5th mogo
 	robot.move_ffwd(-30.4,1000);
@@ -469,6 +491,9 @@ void red_goal_side(){
 	lift.lift_move(127);
 	robot.move_to_point(-26,41.2);
 }
+
+// Skills
+// 19 rings (1 on alliance stake, 6 on mogo 1, 6 on mogo 2, 6 on mogo 3, all in corner + 1 more) = 47 pts
 void skills(){
 	robot.intake.max();
 	pros::delay(750);
@@ -537,6 +562,7 @@ void skills(){
 	robot.move_to_point(91.2, -52.2);
 }
 
+// 6 rings (1 on alliance stake, 5 on mogo) = 11 pts
 void awp(){
 	// set alliance
 	intake.set_alliance(Alliance::Red);
@@ -549,10 +575,9 @@ void awp(){
 	intake.max();
 	pros::delay(1700);
 	intake.stop();
-
-	//1.9, 17.78
 }
 
+// This serves to test our tasks in autonomous
 void test_tasks(){
 	intake.set_alliance(Alliance::Blue);
 	intake.auton_stick = true;
@@ -560,9 +585,12 @@ void test_tasks(){
 		if(!intake.intake_filter()){
 			intake.move(127);
 		}
+		pros::delay(20);
 	}
 }
 
+// Selector
+// We use the Robodash library to control selection of our autons.
 rd::Selector selector({
     {"Red Ring Side", red_ring_side},
 	{"Red Goal Side", red_goal_side},
@@ -608,6 +636,9 @@ void initialize() {
 		}
 	});
 
+	// Screen Task //
+	// ----------- //
+	// This task intends to print the odometry coordinates to the brain screen.
 	pros::Task screen_task([&]() {
         while (true) {
 			dlib::Pose2d pose = robot.odom.get_position();
@@ -631,8 +662,8 @@ void disabled() {}
 
 void competition_initialize() {}
 
-
-
+// Add selected autons in here.
+// Prints the completion time of autons.
 void autonomous() {
 	console.focus();
 
