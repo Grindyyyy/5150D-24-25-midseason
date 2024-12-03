@@ -538,6 +538,9 @@ void skills(){
 }
 
 void awp(){
+	// set alliance
+	intake.set_alliance(Alliance::Red);
+
 	robot.move_ffwd(-2);
 	robot.move_left_with_pid(inches(-12));
 	pros::delay(650);
@@ -548,6 +551,16 @@ void awp(){
 	intake.stop();
 
 	//1.9, 17.78
+}
+
+void test_tasks(){
+	intake.set_alliance(Alliance::Blue);
+	intake.auton_stick = true;
+	while(true){
+		if(!intake.intake_filter()){
+			intake.move(127);
+		}
+	}
 }
 
 rd::Selector selector({
@@ -633,11 +646,7 @@ void autonomous() {
 }	
 
 void opcontrol() {
-	bool mogo_state = true;
-	bool arm_state = false;
-	int range = 16000;
 	lift.lift_move(-20);
-	intake.set_alliance(Alliance::Red);
 	// Try arcade drive control!
 	pros::Controller master = pros::Controller(pros::E_CONTROLLER_MASTER);
 	while(true){
@@ -667,8 +676,7 @@ void opcontrol() {
 		// Mogo Controls
 		// ------------------- //
 		if(master.get_digital_new_press(pros::E_CONTROLLER_DIGITAL_R2)){
-			mogo_state = !mogo_state;
-			mogo.set_clamp_state(mogo_state);
+			mogo.reverse_clamp_state();
 		}
 
 		// ------------------- //
@@ -701,19 +709,11 @@ void opcontrol() {
 		}
 
 		// ------------------- //
-		// Wall Stake Piston Controls
-		// ------------------- //
-		if(master.get_digital_new_press(pros::E_CONTROLLER_DIGITAL_LEFT)){
-			arm_state = !arm_state;
-			misc_pneumatics.set_arm_state(arm_state);
-		}
-
-		// ------------------- //
 		// Intake Redirect
 		// ------------------- //
 		if(master.get_digital_new_press(pros::E_CONTROLLER_DIGITAL_B)){
-			redirect_bool = !redirect_bool;
-			intake.set_redirect(redirect_bool);
+			intake.redirect = !intake.redirect;
+			intake.set_redirect(intake.redirect);
 		}
 
 		pros::delay(20);
