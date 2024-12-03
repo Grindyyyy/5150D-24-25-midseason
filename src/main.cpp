@@ -539,8 +539,8 @@ void skills(){
 
 void awp(){
 	robot.move_ffwd(-2);
-	robot.chassis.left_motors.move_voltage(volts(-12));
-		pros::delay(650);
+	robot.move_left_with_pid(inches(-12));
+	pros::delay(650);
 	robot.chassis.brake();
 	robot.move_ffwd(-4);
 	intake.max();
@@ -608,7 +608,8 @@ void autonomous() {
 	//
 	auto start_time = pros::millis();
 	//robot.turn_with_pid(90,99999,12000);
-	awp();
+	//awp();
+	robot.move_left_with_pid(inches(-12));
 	//117.7, -43.7
 	//95.7 -74.8 true
 	auto elapsed_time = pros::millis() - start_time;
