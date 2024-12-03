@@ -656,6 +656,8 @@ void initialize() {
             console.printf("X: %f", pose.x.in(inches)); // x
             console.printf("Y: %f", pose.y.in(inches)); // y
             console.printf("Theta: %f",pose.theta.in(degrees));
+
+			std::cout << "left displacement: " << robot.chassis.left_motors_displacement() << "\n";
 			
 			//std::cout << pose.theta.in(degrees) << "\n"; // heading
             // delay to save resources
