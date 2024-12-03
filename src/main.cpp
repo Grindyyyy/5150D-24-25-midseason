@@ -1,5 +1,6 @@
 #include "main.h"
 #include "au/au.hpp"
+#include "dlib/controllers/error_derivative_settler.hpp"
 #include "dlib/controllers/feedforward.hpp"
 #include "dlib/dlib.hpp"
 #include "dlib/kinematics/odometry.hpp"
@@ -29,6 +30,12 @@ public:
 	dlib::Pid<Inches> move_pid;
 	dlib::ErrorDerivativeSettler<Meters> move_settler;
 
+	dlib::Pid<Inches> left_move_pid;
+	dlib::ErrorDerivativeSettler<Meters> left_move_settler;
+
+	dlib::Pid<Inches> right_move_pid;
+	dlib::ErrorDerivativeSettler<Meters> right_move_settler;
+
 	dlib::Pid<Degrees> turn_pid;
 	dlib::ErrorDerivativeSettler<Degrees> turn_settler;
 
@@ -45,7 +52,40 @@ public:
 		imu.initialize();
 	}
 
-	
+	void move_left_with_pid(Quantity<Meters, double> displacement){
+		auto start_displacement = chassis.left_motors_displacement();
+		auto target_displacement = dlib::relative_target(start_displacement, displacement);
+
+		left_move_pid.reset();
+		left_move_settler.reset();
+
+		while(!left_move_settler.is_settled(left_move_pid.get_error(),left_move_pid.get_derivative())){
+			auto error = dlib::linear_error(target_displacement,chassis.left_motors_displacement());
+			auto voltage = left_move_pid.update(error, milli(seconds)(20));
+
+			chassis.left_motors.move_voltage(voltage);
+
+			pros::delay(20);
+		}
+	}
+
+	void move_right_with_pid(Quantity<Meters, double> displacement){
+		auto start_displacement = chassis.right_motors_displacement();
+		auto target_displacement = dlib::relative_target(start_displacement, displacement);
+
+		right_move_pid.reset();
+		right_move_settler.reset();
+
+		while(!left_move_settler.is_settled(right_move_pid.get_error(),left_move_pid.get_derivative())){
+			auto error = dlib::linear_error(target_displacement,chassis.right_motors_displacement());
+			auto voltage = right_move_pid.update(error, milli(seconds)(20));
+
+			chassis.right_motors.move_voltage(voltage);
+
+			pros::delay(20);
+		}
+	}
+
 
 	void move_ffwd(double displacement, double max_time = 99999, int max_voltage = 12000){
 		auto start_displacement = chassis.forward_motor_displacement();
@@ -213,6 +253,30 @@ dlib::ErrorTimeSettler<Meters> time_move_pid_settler {
 	milli(seconds)(100) // derivative threshold, the maximum instantaneous error over time the pid can settle at
 };
 
+dlib::PidConfig left_move_pid_gains {
+	{5,
+	0,
+	0},
+	volts(12)
+};
+
+dlib::ErrorDerivativeSettler<Meters> left_move_pid_settler {
+	inches(0.5),		// error threshold, the maximum error the pid can settle at
+	meters_per_second(0.005) // derivative threshold, the maximum instantaneous error over time the pid can settle at
+};
+
+dlib::PidConfig right_move_pid_gains {
+	{5,
+	0,
+	0},
+	volts(12)
+};
+
+dlib::ErrorDerivativeSettler<Meters> right_move_pid_settler {
+	inches(0.5),		// error threshold, the maximum error the pid can settle at
+	meters_per_second(0.005) // derivative threshold, the maximum instantaneous error over time the pid can settle at
+};
+
 // Adjust these gainsWWW
 dlib::PidConfig turn_pid_gains {
 	{
@@ -284,6 +348,10 @@ Robot robot = {
 	misc_pneumatics,
 	move_pid_gains,
 	move_pid_settler,
+	left_move_pid_gains,
+	left_move_pid_settler,
+	right_move_pid_gains,
+	right_move_pid_settler,
 	turn_pid_gains,
 	turn_pid_settler,
 	feedforward
