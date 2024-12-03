@@ -624,7 +624,7 @@ void initialize() {
 	// redirect: redirect a alliance color ring onto wall stake mech
 	// fling: fling non-alliance rings so they dont get scored
 	// shouldn't interfere with auton
-	/*pros::Task intake_filter_task([&]() {
+	pros::Task intake_filter_task([&]() {
 		while(true) {
 			if(intake.intake_filter() && intake.redirect){
 				// redirect macro aka just reverse
@@ -642,7 +642,7 @@ void initialize() {
 				intake.stop();
 			}
 		}
-	});*/
+	});
 
 	// Screen Task //
 	// ----------- //
