@@ -68,12 +68,16 @@ public:
 
 		while(!left_move_settler.is_settled(left_move_pid.get_error(),left_move_pid.get_derivative())){
 			auto error = dlib::linear_error(target_displacement,chassis.left_motors_displacement());
+			std::cout << "error: " << error.in(inches) << std::endl;
 			auto voltage = left_move_pid.update(error, milli(seconds)(20));
 
 			chassis.left_motors.move_voltage(voltage);
 
 			pros::delay(20);
 		}
+		std::cout << "left movement settled" << "\n";
+		std::cout << "left displacement: " << chassis.left_motors_displacement().in(inches) << std::endl;
+		chassis.move(0);
 	}
 
 	// Only move the right side of the drivetrain using PID
@@ -575,6 +579,10 @@ void awp(){
 	intake.max();
 	pros::delay(1700);
 	intake.stop();
+}
+
+void left_pid_test(){
+	robot.move_left_with_pid(inches(-24));
 }
 
 // This serves to test our tasks in autonomous
