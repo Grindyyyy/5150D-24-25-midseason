@@ -648,6 +648,7 @@ void initialize() {
 	// ----------- //
 	// This task intends to print the odometry coordinates to the brain screen.
 	pros::Task screen_task([&]() {
+		auto last_displacement = robot.chassis.left_motors_displacement();
         while (true) {
 			dlib::Pose2d pose = robot.odom.get_position();
 
@@ -657,7 +658,13 @@ void initialize() {
             console.printf("Y: %f", pose.y.in(inches)); // y
             console.printf("Theta: %f",pose.theta.in(degrees));
 
-			std::cout << "left displacement: " << robot.chassis.left_motors_displacement().in(inches) << "\n";
+			auto current_displacement = robot.chassis.left_motors_displacement();
+
+			if(current_displacement != last_displacement){
+				std::cout << "left displacement: " << current_displacement.in(inches) << "\n";
+			}
+
+			last_displacement = robot.chassis.left_motors_displacement();
 			
 			//std::cout << pose.theta.in(degrees) << "\n"; // heading
 			// 0.05
