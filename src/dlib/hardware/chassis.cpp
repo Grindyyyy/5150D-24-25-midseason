@@ -73,7 +73,7 @@ void Chassis::turn_voltage(const au::Quantity<au::Volts, double> voltage) {
 
 void Chassis::arcade(const int32_t power, const int32_t turn) {
     this->left_motors.move(power - turn);
-    this->right_motors.move(power + turn);
+    //this->right_motors.move(power + turn);
 }
 
 void Chassis::brake() {
