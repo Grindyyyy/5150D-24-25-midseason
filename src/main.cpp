@@ -572,13 +572,13 @@ void awp(){
 	intake.set_alliance(Alliance::Red);
 
 	robot.move_ffwd(-2);
-	robot.move_left_with_pid(inches(-12));
+	/*robot.move_left_with_pid(inches(-12));
 	pros::delay(650);
 	robot.chassis.brake();
 	robot.move_ffwd(-4);
 	intake.max();
 	pros::delay(1700);
-	intake.stop();
+	intake.stop();*/
 }
 
 void left_pid_test(){
@@ -678,7 +678,7 @@ void autonomous() {
 	console.focus();
 
 	auto start_time = pros::millis();
-	robot.move_left_with_pid(inches(-24));
+	awp();
 	auto elapsed_time = pros::millis() - start_time;
 
 	std::cout << "settled in " << elapsed_time << " milliseconds." << "\n";
