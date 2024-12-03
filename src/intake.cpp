@@ -11,12 +11,14 @@ Intake::Intake(
     int8_t distance_sensor_port,
     Alliance alliance, // false = blue, true = red
     bool redirect,
+    bool auton_stick,
     bool auton
 ) :
     intake_motor(intake_port),
     color_sensor(color_sensor_port),
     distance_sensor(distance_sensor_port),
     alliance(alliance),
+    auton_stick(auton_stick),
     auton(auton) {
     intake_motor.set_gearing(pros::E_MOTOR_GEAR_BLUE);
 };
@@ -68,20 +70,41 @@ double Intake::get_blue(){
 
 bool Intake::intake_filter(){
     color_sensor.set_led_pwm(20);
-    if(alliance == Alliance::Blue){
-        if((get_red() > get_blue() * 1.5) || (redirect && get_blue() > get_red() * 1.5)) {
-            return true;
+    if(!redirect && !auton_stick){
+        if(alliance == Alliance::Blue){
+            if((get_red() > get_blue() * 1.5) || (redirect && get_blue() > get_red() * 1.5)) {
+                return true;
+            }
+            else{
+                return false;
+            }
         }
-        else{
-            return false;
+        if(alliance == Alliance::Red){
+            if((get_blue() > get_red() * 1.5) || (redirect && get_red() > get_blue() * 1.5)) {
+                return true;
+            }
+            else{
+                return false;
+            }
         }
     }
-    if(alliance == Alliance::Red){
-        if((get_blue() > get_red() * 1.5) || (redirect && get_red() > get_blue() * 1.5)) {
-            return true;
+    else{
+        if(alliance == Alliance::Red){
+            if((get_red() > get_blue() * 1.5) || (redirect && get_blue() > get_red() * 1.5)) {
+                return true;
+            }
+            else{
+                return false;
+            }
         }
-        else{
-            return false;
+        if(alliance == Alliance::Blue){
+            if((get_blue() > get_red() * 1.5) || (redirect && get_red() > get_blue() * 1.5)) {
+                return true;
+            }
+            else{
+                return false;
+            }
         }
     }
+    
 }

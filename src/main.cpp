@@ -575,6 +575,25 @@ void initialize() {
 	// redirect: redirect a alliance color ring onto wall stake mech
 	// fling: fling non-alliance rings so they dont get scored
 	// shouldn't interfere with auton
+	pros::Task intake_filter_task([&]() {
+		while(true) {
+			if(intake.intake_filter() && intake.redirect){
+				// redirect macro aka just reverse
+				intake.move(-127);
+				pros::delay(500);
+				intake.stop();
+			}
+			else if(intake.intake_filter() && intake.auton_stick){
+				intake.stop();
+			}
+			else if(intake.intake_filter()){
+				// fling macro
+				intake.move(127);
+				pros::delay(200);
+				intake.stop();
+			}
+		}
+	});
 
 	pros::Task screen_task([&]() {
         while (true) {
@@ -603,29 +622,21 @@ void competition_initialize() {}
 
 void autonomous() {
 	console.focus();
-	//skills();
-	//selector.run_auton();
-	//
+
 	auto start_time = pros::millis();
-	//robot.turn_with_pid(90,99999,12000);
-	//awp();
 	robot.move_left_with_pid(inches(-12));
-	//117.7, -43.7
-	//95.7 -74.8 true
 	auto elapsed_time = pros::millis() - start_time;
 
 	std::cout << "settled in " << elapsed_time << " milliseconds." << "\n";
 	dlib::Pose2d position = robot.odom.get_position();
-std::cout << position.x.in(inches) << ", " << position.y.in(inches) << ", " << position.theta.in(degrees) << "\n";
+	std::cout << position.x.in(inches) << ", " << position.y.in(inches) << ", " << position.theta.in(degrees) << "\n";
 }	
 
 void opcontrol() {
 	bool mogo_state = true;
 	bool arm_state = false;
-	bool redirect_bool = false;
 	int range = 16000;
 	lift.lift_move(-20);
-	intake.set_mode(false);
 	intake.set_alliance(Alliance::Red);
 	// Try arcade drive control!
 	pros::Controller master = pros::Controller(pros::E_CONTROLLER_MASTER);
@@ -648,7 +659,7 @@ void opcontrol() {
 		else if(master.get_digital(pros::E_CONTROLLER_DIGITAL_A) && !intake.intake_filter()){
 			intake.rev();
 		}
-		else if(!robot.intake.intake_filter()){
+		else if(!intake.intake_filter()){
 			intake.stop();
 		}
 
@@ -668,7 +679,7 @@ void opcontrol() {
 			lift.lift_move(90);
 		}
 		if(master.get_digital_new_press(pros::E_CONTROLLER_DIGITAL_L2)){
-			lift.lift_move(-30);
+			lift.lift_move(-20);
 		}
 
 		// ------------------- //

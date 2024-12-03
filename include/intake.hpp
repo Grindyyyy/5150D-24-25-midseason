@@ -15,6 +15,7 @@ class Intake{
         Alliance alliance;
         bool redirect;
         bool auton;
+        bool auton_stick;
         
 
         Intake(
@@ -23,6 +24,7 @@ class Intake{
             int8_t distance_sensor_port,
             Alliance alliance = Alliance::Blue,
             bool redirect = false, // distance sensor for the intake
+            bool auton_stick = false,
             bool auton = false
         );
 
