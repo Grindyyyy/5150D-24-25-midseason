@@ -6,7 +6,6 @@ class Lift{
         pros::Motor lift_motor;
         pros::Rotation lift_rot;
         bool lift_toggle = false;
-        int last_range = 0;
 
         Lift(
             int8_t lift_port,

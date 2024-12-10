@@ -1,6 +1,8 @@
 #include "api.h"
 #include "pros/distance.hpp"
 #include <cstdint>
+#include <memory>
+#include <mutex>
 #include "intake.hpp"
 
 
@@ -9,7 +11,7 @@ Intake::Intake(
     int8_t intake_port,
     int8_t color_sensor_port,
     int8_t distance_sensor_port,
-    Alliance alliance, // false = blue, true = red
+    Alliance2 alliance, // false = blue, true = red
     bool redirect,
     bool auton_stick,
     bool auton
@@ -19,92 +21,40 @@ Intake::Intake(
     distance_sensor(distance_sensor_port),
     alliance(alliance),
     auton_stick(auton_stick),
-    auton(auton) {
+    auton(auton)
+    {
     intake_motor.set_gearing(pros::E_MOTOR_GEAR_BLUE);
 };
 
-void Intake::set_alliance(Alliance new_alliance){
+void Intake::set_alliance(Alliance2 new_alliance){
+    std::lock_guard<pros::Mutex> guard(intake_mutex);
     alliance = new_alliance;
 }
 
-void Intake::set_redirect(bool new_redirect){
-    redirect = new_redirect;
-}
-
-void Intake::set_mode(bool mode){
-    auton = mode;
+Alliance2 Intake::get_alliance(){
+    return alliance;
 }
 
 // Move intake forward at x volts
 void Intake::move(int8_t volts){
+    std::lock_guard<pros::Mutex> guard(intake_mutex);
     intake_motor.move(volts);
 }
 
 // Move intake forward
 void Intake::max(){
+    std::lock_guard<pros::Mutex> guard(intake_mutex);
     intake_motor.move(127);
 }
 
 // Move intake in reverse
 void Intake::rev(){
+    std::lock_guard<pros::Mutex> guard(intake_mutex);
     intake_motor.move(-127);
 }
 
 // Stop intake
 void Intake::stop(){
+    std::lock_guard<pros::Mutex> guard(intake_mutex);
     intake_motor.brake();
-}
-
-double Intake::get_red(){
-    pros::c::optical_rgb_s_t rgb = color_sensor.get_rgb();
-    return(rgb.red);
-}
-double Intake::get_green(){
-    pros::c::optical_rgb_s_t rgb = color_sensor.get_rgb();
-    return(rgb.green);
-}
-double Intake::get_blue(){
-    pros::c::optical_rgb_s_t rgb = color_sensor.get_rgb();
-    return(rgb.blue);
-}
-
-bool Intake::intake_filter(){
-    color_sensor.set_led_pwm(20);
-    if(!redirect && !auton_stick){
-        if(alliance == Alliance::Blue){
-            if((get_red() > get_blue() * 1.5) || (redirect && get_blue() > get_red() * 1.5)) {
-                return true;
-            }
-            else{
-                return false;
-            }
-        }
-        if(alliance == Alliance::Red){
-            if((get_blue() > get_red() * 1.5) || (redirect && get_red() > get_blue() * 1.5)) {
-                return true;
-            }
-            else{
-                return false;
-            }
-        }
-    }
-    else{
-        if(alliance == Alliance::Red){
-            if((get_red() > get_blue() * 1.5) || (redirect && get_blue() > get_red() * 1.5)) {
-                return true;
-            }
-            else{
-                return false;
-            }
-        }
-        if(alliance == Alliance::Blue){
-            if((get_blue() > get_red() * 1.5) || (redirect && get_red() > get_blue() * 1.5)) {
-                return true;
-            }
-            else{
-                return false;
-            }
-        }
-    }
-    
 }

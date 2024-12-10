@@ -1,7 +1,7 @@
 #pragma once
 #include "api.h"
 
-enum class Alliance {
+enum class Alliance2 {
     Red,
     Blue
 };
@@ -12,24 +12,27 @@ class Intake{
         pros::Optical color_sensor;
         pros::Distance distance_sensor;
         
-        Alliance alliance;
+        Alliance2 alliance;
         bool redirect;
         bool auton;
         bool auton_stick;
-        
+
+        pros::Mutex intake_mutex{};
 
         Intake(
             int8_t intake_port, // intake port
             int8_t color_sensor_port, // color sensor for the intake
             int8_t distance_sensor_port,
-            Alliance alliance = Alliance::Blue,
+            Alliance2 alliance = Alliance2::Blue,
             bool redirect = false, // distance sensor for the intake
             bool auton_stick = false,
             bool auton = false
         );
 
 
-        void set_alliance(Alliance new_alliance);
+        void set_alliance(Alliance2 new_alliance);
+
+        Alliance2 get_alliance();
 
         void set_redirect(bool redirect);
 
@@ -48,6 +51,8 @@ class Intake{
         double get_red();
         double get_green();
         double get_blue();
+
+        bool get_redirect();
 
         void stop();
 };

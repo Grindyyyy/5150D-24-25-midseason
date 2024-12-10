@@ -14,5 +14,9 @@ class Mogo{
 
         void set_clamp_state(bool state);
 
+        void clamp();
+
+        void unclamp();
+
         void reverse_clamp_state();
 };
