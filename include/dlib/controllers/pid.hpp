@@ -21,6 +21,7 @@ struct PidGains {
 struct PidConfig {
     PidGains gains{};
     au::Quantity<au::Volts, double> max_voltage = au::volts(12);
+    double windup_range = 6;
 };
 
 namespace detail {

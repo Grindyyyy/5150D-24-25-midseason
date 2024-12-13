@@ -174,18 +174,17 @@ public:
 		auto last_error = degrees(heading);
 		auto reading = imu.get_rotation();
 
+
 		while (!turn_settler.is_settled(turn_pid.get_error(), turn_pid.get_derivative())) {
 
 			auto error = dlib::angular_error((au::degrees)(heading), imu.get_rotation());
-
 			if (elapsed_time > max_time) {
 				chassis.brake();
 				std::cout << "timed out" << "\n";
 				break;
 			}
 
-			voltage = turn_pid.update(error, milli(seconds)(20));
-			std::cout << voltage << std::endl;
+			voltage = turn_pid.update(error, milli(seconds)(10));
 			
 			if(au::abs(voltage) > milli(volts)(max_voltage)){
 				if(voltage > volts(0)){
@@ -199,9 +198,10 @@ public:
 			chassis.turn_voltage(voltage);
 
 			last_error = error;
+			std::cout << imu.get_rotation() << std::endl;
 
-			elapsed_time += 20;
-			pros::delay(20);
+			elapsed_time += 10;
+			pros::delay(10);
 		}
 
 		chassis.left_motors.raw.brake();
@@ -259,7 +259,8 @@ public:
 
 			auto left_power = linear_power + angular_power;
 			auto right_power = linear_power - angular_power;
-
+			std::cout << left_power.in(volts) << std::endl;
+			std::cout << right_power.in(volts) << std::endl;
 			chassis.left_motors.move_voltage(left_power);
 			chassis.right_motors.move_voltage(right_power);
 
@@ -316,12 +317,12 @@ dlib::PidConfig move_pid_gains {
 };
 
 dlib::PidConfig boomerang_move_pid_gains {
-	{0,0,0},
+	{10,0,0},
 	volts(12)
 };
 
 dlib::PidConfig boomerang_turn_pid_gains {
-	{0,0,0},
+	{10,0,0},
 	volts(12)
 };
 
@@ -386,9 +387,7 @@ dlib::Feedforward<Meters> feedforward {
 // Chassis turn PID gains
 dlib::PidConfig turn_pid_gains {
 	{
-	50,
-	0,
-	3.1
+	65,0,4
 	},
 	volts(12)
 };
@@ -396,7 +395,7 @@ dlib::PidConfig turn_pid_gains {
 // Chassis turn PID settler
 dlib::ErrorDerivativeSettler<Degrees> turn_pid_settler {
 	degrees(1),		// error threshold, the maximum error the pid can settle at
-	degrees_per_second(0.2)	// derivative threshold, the maximum instantaneous error over time the pid can settle at
+	degrees_per_second(0.5)	// derivative threshold, the maximum instantaneous error over time the pid can settle at
 };
 
 // Intake object
@@ -484,6 +483,7 @@ void blue_awp_ring_side(){
 
 // 4 rings (1 on alliance stake, 3 on mogo) = 8 points
 void red_awp_ring_side(){
+	lift.lift_move(-20);
 	alliance = Alliance::Red;
 	robot.move_ffwd(-13.5);
 	robot.move_to_point(-13.5, -4.5,true,1500,.85);
@@ -495,14 +495,15 @@ void red_awp_ring_side(){
 	mogo.set_clamp_state(true);
 	pros::delay(200);
 	robot.intake->max();
-	robot.move_to_point(31.6,36.5);
-	robot.move_ffwd(-13);
 	robot.move_to_point(23.9,48.4);
 	robot.move_ffwd(-24);
+	robot.move_to_point(31.6,36.5);
+	robot.move_ffwd(-13);
 	pros::delay(1200);
 	// lift up
 	lift.lift_move(127);
 	robot.move_to_point(2,42,false,1200,1.8);
+	lift.lift_move(-20);
 	//-.8 34.7
 	// doinker
 }
@@ -648,64 +649,53 @@ void red_awp_goal_side(){
 // Skills
 // 19 rings (1 on alliance stake, 6 on mogo 1, 6 on mogo 2, 6 on mogo 3, all in corner + 1 more) = 47 pts
 void skills(){
+	lift.lift_move(-20);
 	robot.intake->max();
 	pros::delay(750);
 	robot.move_ffwd(16.5);
+	robot.intake->stop();
 	// grab mogo
 	robot.move_to_point(16.5, 22.1, true, 10000, 0.85);
-	mogo.set_clamp_state(true);
-	// ring 1
-	robot.move_to_point(40, 22.7);
-	pros::delay(500);
-	// ring 2
-	robot.move_to_point(58,52.6);
-	pros::delay(500);
-	// ring 3
-	robot.move_to_point(42.2, 47.8);
-	pros::delay(500);
-	// rings 4,5
-	robot.move_to_point(5.2, 44.9,false,10000,0.3);
-	pros::delay(1500);
-	// back up
-	robot.move_ffwd(-20);
-	// ring 6
-	robot.move_to_point(20.4, 53.7);
-	pros::delay(500);
-	// drop mogo
-	robot.move_to_point(6.8, 58.9,true,10000,0.3);
-	mogo.set_clamp_state(false);
-	robot.intake->stop();
-	// move to next mogo
-	robot.move_to_point(19,50.9,false,1000);
-	robot.move_to_point(14.5,22.9,true);
-	robot.move_to_point(20.6,-25.4,true,10000,0.85);
-	mogo.set_clamp_state(true);
+	mogo.clamp();
 	pros::delay(300);
 	robot.intake->max();
-	//ring 1
-	robot.move_to_point(38.5,-23.9);
-	pros::delay(500);
+	// ring 1
+	robot.move_to_point(37.9, 22.9);
 	// ring 2
-	robot.move_to_point(58.7,-54);
-	pros::delay(500);
+	robot.move_to_point(62.9, 50.2);
 	// ring 3
-	robot.move_to_point(37.4,-48.6);
-	pros::delay(500);
+	robot.move_to_point(42.6,45.5);
 	// rings 4,5
-	robot.move_to_point(5.1, -45.4,false,10000,0.3);
-	pros::delay(1500);
-	// back up
-	robot.move_ffwd(-23);
+	robot.move_to_point(9.4,43.8,false,5000,0.4);
+	pros::delay(1000);
+	robot.move_ffwd(-18);
 	// ring 6
-	robot.move_to_point(20.1, -58.7);
-	pros::delay(500);
-	// drop mogo
-	robot.move_to_point(7.2, -60.2, true, 10000, 0.3);
-	mogo.set_clamp_state(false);
+	robot.move_to_point(20,53.9);
+	robot.move_to_point(8.9,56.4,true,3000,0.7);
 	robot.intake->stop();
-	// third quad
-	robot.move_to_point(60.5,-43.4);
+	mogo.unclamp();
+	robot.move_ffwd(24);
+	// move to next mogo
+	robot.move_to_point(17.5,-9,true);
+	robot.move_to_point(17,-24.6,true,3000,0.85);
+	mogo.clamp();
+	pros::delay(300);
 	robot.intake->max();
+	robot.move_to_point(39.6,-24.2);
+	robot.move_to_point(64,-53.5);
+	robot.move_to_point(42.1,-48.2);
+	robot.move_to_point(9.5,-45.3,false,3000,0.4);
+	robot.move_ffwd(-18);
+	robot.move_to_point(21.8, -57.2);
+	robot.move_to_point(8.5,-59.5,true,3000,0.7);
+	robot.intake->stop();
+	mogo.unclamp();
+	robot.move_ffwd(50);
+	// 21.8 -57.2
+	// 8.5 -59.5
+	// forward 50
+
+	
 }
 
 void left_pid_test(){
@@ -713,27 +703,12 @@ void left_pid_test(){
 }
 
 void test(){
-	pros::delay(5000);
-	mogo.set_clamp_state(true);
-	robot.intake->max();
-	pros::delay(1000);
-	mogo.set_clamp_state(false);
-	robot.intake->stop();
-	pros::delay(10000);
-	mogo.set_clamp_state(true);
-	pros::delay(300);
-	robot.intake->max();
+	robot.turn_with_pid(150, 99999,12000);
 }
 
 // This serves to test our tasks in autonomous
 void test_tasks(){
-	robot.intake->auton_stick = true;
-	while(true){
-		if(!robot.intake->intake_filter()){
-			robot.intake->move(127);
-		}
-		pros::delay(20);
-	}
+	
 }
 
 // Selector
@@ -753,7 +728,7 @@ rd::Selector selector({
 
 rd::Console console;
 
-pros::Optical intake_sensor(3);
+pros::Rotation rot(3);
 pros::Motor intake_motor(-8);
 
 bool detected = false;
@@ -812,7 +787,10 @@ void autonomous() {
 
 	auto start_time = pros::millis();
 	//evolution_auton();
-	selector.run_auton();
+	//selector.run_auton();
+	//red_awp_ring_side();
+	//test();
+	skills();
 	robot.chassis.brake();
 	auto elapsed_time = pros::millis() - start_time;
 
@@ -822,15 +800,41 @@ void autonomous() {
 }	
 
 void opcontrol() {
-	lift.lift_move(-40);
-	intake_sensor.set_led_pwm(20);
+	//lift.lift_move(-10);
 	// Try arcade drive control!
 	pros::Controller master = pros::Controller(pros::E_CONTROLLER_MASTER);
 	alliance = Alliance::Red;
+	bool lift_toggle = false;
 	robot.chassis.left_motors.raw.set_brake_mode_all(pros::E_MOTOR_BRAKE_BRAKE);
 	robot.chassis.right_motors.raw.set_brake_mode_all(pros::E_MOTOR_BRAKE_BRAKE);
+
+	rot.set_position(0);
+	rot.set_reversed(true);
+	// 60047
+	// down is down
 	
 	while(true){
+		if(lift_toggle){
+			std::cout << rot.get_angle() << "\n";
+			if(rot.get_angle() > 55000){
+				lift.lift_move(10);
+				std::cout << "inside stay" << "\n";
+			}
+			else{
+				lift.lift_move(127);
+				std::cout << "inside move" << "\n";
+			}
+		}
+		else{
+			if(rot.get_angle() > 25000){
+				lift.lift_move(-127);
+			}
+			else{
+				std::cout << "outside" << "\n";
+				lift.lift_move(-10);
+			}
+		}
+		
 
 		// ------------------- //
 		// Chassis Controls
@@ -867,10 +871,10 @@ void opcontrol() {
 		// ------------------- //
 		
 		if(master.get_digital_new_press(pros::E_CONTROLLER_DIGITAL_L1)){
-			lift.lift_move(127);
+			lift_toggle = true;
 		}
 		if(master.get_digital_new_press(pros::E_CONTROLLER_DIGITAL_L2)){
-			lift.lift_move(-20);
+			lift_toggle = false;
 		}
 
 		// ------------------- //
