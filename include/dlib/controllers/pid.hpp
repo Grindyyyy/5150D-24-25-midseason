@@ -21,7 +21,6 @@ struct PidGains {
 struct PidConfig {
     PidGains gains{};
     au::Quantity<au::Volts, double> max_voltage = au::volts(12);
-    double windup_range = 6;
 };
 
 namespace detail {
@@ -45,19 +44,19 @@ namespace detail {
 template<typename Units>
 class Pid {
 public:
-    Pid(PidConfig config) : gains(config.gains), max_voltage(config.max_voltage) {};
+    Pid(PidConfig config) : m_gains(config.gains), m_max_voltage(config.max_voltage) {};
 
     /**
      * @brief Reset all of the Pid state
      * 
      */
     void reset() {
-        this->p = au::ZERO;
-        this->i = au::ZERO;
-        this->d = au::ZERO;
+        m_p = au::ZERO;
+        m_i = au::ZERO;
+        m_d = au::ZERO;
 
-        this->last_error = au::ZERO;
-        this->last_derivative = au::ZERO;
+        m_last_error = au::ZERO;
+        m_last_derivative = au::ZERO;
     }
 
     /**
@@ -83,35 +82,35 @@ public:
         au::Quantity<au::Seconds, double> period
     ) {
         auto delta_time = period;
-        auto delta_error = error - last_error;
+        auto delta_error = error - m_last_error;
 
         auto derivative = (delta_error / delta_time);
         
         // calculate Pid terms
 
         // integral reset on sign flip
-        if ((error < au::ZERO) != (last_error < au::ZERO)) {
-            this->i = au::ZERO;
+        if ((error < au::ZERO) != (m_last_error < au::ZERO)) {
+            m_i = au::ZERO;
         }
         
-        if (this->i > this->max_voltage) {
-            this->i = this->max_voltage;
-        } else if (this->i < -this->max_voltage) {
-            this->i = -this->max_voltage;
+        if (m_i > m_max_voltage) {
+            m_i = m_max_voltage;
+        } else if (m_i < -m_max_voltage) {
+            m_i = -m_max_voltage;
         }
         
-        this->p = error * this->gains.kp;
-        this->i = this->i + error * delta_time * this->gains.ki;
-        this->d = (delta_error / delta_time) * this->gains.kd;
+        m_p = error * m_gains.kp;
+        m_i = m_i + error * delta_time * m_gains.ki;
+        m_d = (delta_error / delta_time) * m_gains.kd;
 
         auto output = std::clamp(
-            this->p + this->i + this->d, 
-            au::volts(-12.0), au::volts(12.0)
+            m_p + m_i + m_d, 
+            -m_max_voltage, m_max_voltage
         );
 
         // update Pid state
-        this->last_error      = error;
-        this->last_derivative = derivative;
+        m_last_error      = error;
+        m_last_derivative = derivative;
         
         return output;
     };
@@ -133,7 +132,7 @@ public:
      * @endcode
     */
     PidGains get_gains() const {
-        return this->gains;
+        return m_gains;
     }
 
     /**
@@ -153,7 +152,7 @@ public:
      * @endcode
     */
     void set_gains(PidGains gains) {
-        this->gains = gains;
+        m_gains = gains;
     }
 
     /**
@@ -173,7 +172,7 @@ public:
      * @endcode
     */
     au::Quantity<Units, double> get_error() const {
-        return this->last_error;
+        return m_last_error;
     }
 
     /**
@@ -193,7 +192,7 @@ public:
      * @endcode
     */
     au::Quantity<au::TimeDerivative<Units>, double> get_derivative() const {
-        return this->last_derivative;
+        return m_last_derivative;
     }
 
     /**
@@ -202,7 +201,7 @@ public:
      * @return au::Quantity<Units, double> 
      */
     au::Quantity<Units, double> get_p() const {
-        return this->p;
+        return m_p;
     }
 
     /**
@@ -211,7 +210,7 @@ public:
      * @return au::Quantity<au::TimeIntegral<Units>, double> 
      */
     au::Quantity<au::TimeIntegral<Units>, double> get_i() const {
-        return this->i;
+        return m_i;
     }
 
     /**
@@ -220,20 +219,20 @@ public:
      * @return au::Quantity<au::TimeDerivative<Units>, double> 
      */
     au::Quantity<au::TimeDerivative<Units>, double> get_d() const {
-        return this->d;
+        return m_d;
     }
 protected:
     using BaseUnits = au::UnitImpl<au::detail::DimT<Units>>;
-    detail::PidGainsWithUnits<BaseUnits> gains;
     
-    au::Quantity<au::Volts, double> max_voltage;
+    detail::PidGainsWithUnits<BaseUnits> m_gains;
+    const au::Quantity<au::Volts, double> m_max_voltage;
 
-    au::Quantity<au::Volts, double> p = au::ZERO;
-    au::Quantity<au::Volts, double> i = au::ZERO;
-    au::Quantity<au::Volts, double> d = au::ZERO;
+    au::Quantity<au::Volts, double> m_p = au::ZERO;
+    au::Quantity<au::Volts, double> m_i = au::ZERO;
+    au::Quantity<au::Volts, double> m_d = au::ZERO;
 
-    au::Quantity<Units, double> last_error;
-    au::Quantity<au::TimeDerivative<Units>, double> last_derivative;
+    au::Quantity<Units, double> m_last_error;
+    au::Quantity<au::TimeDerivative<Units>, double> m_last_derivative;
 };
 
 }

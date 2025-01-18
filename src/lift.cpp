@@ -4,9 +4,11 @@
 // Initializer class for intake
 Lift::Lift(
     int8_t lift_port,
-    int8_t lift_rot_port
+    int8_t lift_rot_port,
+    char piston_port,
+    LiftState lift_state
 ) :
-lift_motor(lift_port), lift_rot(lift_rot_port){
+lift_motor(lift_port), lift_rot(lift_rot_port), piston(piston_port), lift_state(lift_state){
 lift_motor.set_gearing(pros::E_MOTOR_GEAR_RED);
 };
 
@@ -32,6 +34,23 @@ void Lift::lift_range(double range){
             lift_motor.brake();
         }
     } 
+}
+
+void Lift::move_voltage(double millivolts){
+    lift_motor.move_voltage(millivolts);
+}
+
+void Lift::set_state(LiftState state){
+    lift_state = state;
+    if(state == LiftState::Up){
+        target_position = 56000;
+    }
+    else if(state == LiftState::Touch){
+        target_position = 43000;
+    }
+    else{
+        target_position = 0;
+    }
 }
 
 double Lift::get_lift_range(){

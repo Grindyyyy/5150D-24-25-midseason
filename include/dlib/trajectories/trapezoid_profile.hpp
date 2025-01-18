@@ -21,6 +21,7 @@ template<
 class TrapezoidProfile {
 protected:
     const au::Quantity<au::Time2ndDerivative<Units>, double> m_max_acceleration;
+    const au::Quantity<au::Time2ndDerivative<Units>,double> m_max_deceleration;
     const au::Quantity<au::TimeDerivative<Units>, double> m_max_velocity;
     const au::Quantity<Units, double> m_total_distance;
 
@@ -33,10 +34,12 @@ protected:
 public:
     TrapezoidProfile(
         au::Quantity<au::Time2ndDerivative<Units>, double> max_acceleration, 
+        au::Quantity<au::Time2ndDerivative<Units>, double> max_deceleration,
         au::Quantity<au::TimeDerivative<Units>, double> max_velocity, 
         au::Quantity<Units, double> total_distance
     )  : 
         m_max_acceleration(max_acceleration), 
+        m_max_deceleration(max_deceleration),
         m_max_velocity(max_velocity), 
         m_total_distance(au::abs(total_distance)),
         invert(total_distance < au::ZERO)
@@ -56,13 +59,15 @@ public:
         // gets coast distance by total - (accel + decel)
         auto coast_distance = m_total_distance - accel_distance - decel_distance;
 
+        
+
         // if the coast distance is less than zero, compute the maximum acceleration we can reach in the time given
         if (coast_distance < au::ZERO) {
-            // find the accel time via the equation sqrt(2x/a) = t
-            accel_time = au::sqrt(m_total_distance / m_max_acceleration);
+            // acquire accel time and decel time using transitional velocity (works asymmetrically)
+            auto transition_velocity = au::sqrt((2 * m_total_distance * m_max_acceleration * m_max_deceleration) / (m_max_acceleration + m_max_deceleration));
+            accel_time = transition_velocity / m_max_acceleration;
+            decel_time = transition_velocity / m_max_deceleration;
 
-            // decel time will be the same as accel time
-            decel_time = accel_time;
 
             // no coast distance
             coast_distance = au::ZERO;
