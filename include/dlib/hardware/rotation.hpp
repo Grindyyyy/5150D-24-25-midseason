@@ -3,6 +3,8 @@
 #include "pros/rotation.hpp"
 #include "au/au.hpp"
 
+// rotation.hpp
+
 namespace dlib {
 
 struct RotationConfig {

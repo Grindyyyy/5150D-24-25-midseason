@@ -1,6 +1,8 @@
 #pragma once
 #include "api.h"
 
+// intake.hpp
+
 enum class Alliance {
     Red,
     Blue
@@ -21,6 +23,7 @@ public:
     bool do_redirect = false;
     double current_position;
     double beginning_position;
+    bool do_intake = false;
 
     Intake(
         int8_t intake_motor_port,
@@ -31,7 +34,11 @@ public:
 
     void set_redirect(bool redirect);
 
+    void auto_max();
+
     void max();
+
+    void move_voltage(double volts);
 
     void rev();
 

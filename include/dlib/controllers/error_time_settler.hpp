@@ -3,6 +3,8 @@
 
 namespace dlib {
 
+// error_time_settler.hpp
+
 template<typename Units>
 class ErrorTimeSettler {
 public:

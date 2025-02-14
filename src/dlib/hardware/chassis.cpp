@@ -6,6 +6,8 @@
 
 namespace dlib {
 
+// chassis.cpp
+
 ChassisConfig::ChassisConfig(
     MotorGroupConfig left_motors_config,
     MotorGroupConfig right_motors_config,
@@ -67,13 +69,13 @@ void Chassis::turn(const int32_t power) {
 }
 
 void Chassis::turn_voltage(const au::Quantity<au::Volts, double> voltage) {
-    this->left_motors.move_voltage(-voltage);
-    this->right_motors.move_voltage(voltage);
+    this->left_motors.move_voltage(voltage);
+    this->right_motors.move_voltage(-voltage);
 }
 
 void Chassis::arcade(const int32_t power, const int32_t turn) {
-    this->left_motors.move(power - turn);
-    this->right_motors.move(power + turn);
+    this->left_motors.move(power + turn);
+    this->right_motors.move(power - turn);
 }
 
 void Chassis::brake() {

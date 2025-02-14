@@ -1,7 +1,7 @@
 {
   "py/object": "pros.conductor.project.Project",
   "py/state": {
-    "project_name": "5150D-WPI",
+    "project_name": "5150D",
     "target": "v5",
     "templates": {
       "kernel": {
@@ -280,7 +280,8 @@
       }
     },
     "upload_options": {
-      "icon": "ufo"
+      "icon": "ufo",
+      "description": "D is for demontime"
     },
     "use_early_access": false
   }

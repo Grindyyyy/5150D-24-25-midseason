@@ -4,13 +4,15 @@
 
 namespace dlib {
 
+// odometry.hpp
+
 /**
  * @brief A point in 2d space
  * 
  */
 struct Vector2d {
     /** The x component of the point */
-    au::Quantity<au::Meters, double> x;
+    au::Quantity<au::Meters, double> x;  
 
     /** The y component of the point */
     au::Quantity<au::Meters, double> y;

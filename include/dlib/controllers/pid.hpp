@@ -5,6 +5,8 @@
 
 namespace dlib {
 
+// pid.hpp
+
 /**
  * @brief The gains for a standard Pid controller
  * 

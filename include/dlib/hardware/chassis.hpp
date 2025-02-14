@@ -4,6 +4,8 @@
 #include <initializer_list>
 namespace dlib {
 
+// chassis.hpp
+
 struct ChassisConfig {
     MotorGroupConfig left_motors;
     MotorGroupConfig right_motors;

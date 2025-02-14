@@ -6,6 +6,8 @@
 
 namespace dlib {
 
+// trapezoid_profile.hpp
+
 enum class TrapezoidProfileStage {
     Accelerating,
     Coasting,

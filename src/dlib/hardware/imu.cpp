@@ -3,6 +3,8 @@
 
 namespace dlib {
 
+// imu.cpp
+
 ImuConfig::ImuConfig(int8_t port, double scalar) : port(port), scalar(scalar) {
 
 }

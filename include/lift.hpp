@@ -2,26 +2,30 @@
 #include "api.h"
 #include "pros/adi.hpp"
 
+// lift.hpp
+
 enum class LiftState{
+    Score,
+    Prime,
     Idle,
-    Touch,
-    Up
+    Up,
+    Stake
 };
 
 class Lift{
     public:
-        pros::Motor lift_motor;
+        pros::Motor lift_motor_1;
+        pros::Motor lift_motor_2;
         pros::Rotation lift_rot;
-        pros::adi::DigitalOut piston;
         bool lift_toggle = false;
         LiftState lift_state;
         double target_position;
 
         Lift(
-            int8_t lift_port,
+            int8_t lift_port_1,
+            int8_t lift_port_2,
             int8_t lift_rot_port,
-            char piston_port,
-            LiftState lift_state = LiftState::Up
+            LiftState lift_state = LiftState::Idle
         );
 
         void lift_move(double volts);
@@ -32,7 +36,9 @@ class Lift{
 
         void set_state(LiftState state);
 
-        double get_lift_range();
+        void toggle_state();
+
+        double get_lift_position();
 
         void lift_stop();
 };

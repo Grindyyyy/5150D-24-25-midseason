@@ -3,6 +3,8 @@
 #include "pros/imu.hpp"
 #include "au/au.hpp"
 
+// imu.hpp
+
 namespace dlib {
 
 struct ImuConfig {

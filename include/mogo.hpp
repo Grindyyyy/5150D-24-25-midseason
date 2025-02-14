@@ -1,6 +1,8 @@
 #pragma once
 #include "api.h"
 
+// mogo.hpp
+
 class Mogo{
     public:
         pros::adi::DigitalOut mogo;

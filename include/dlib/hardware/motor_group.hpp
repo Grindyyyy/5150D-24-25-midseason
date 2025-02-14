@@ -3,6 +3,8 @@
 #include "au/au.hpp"
 #include <initializer_list>
 
+// motor_group.hpp
+
 namespace dlib {
 
 struct MotorGroupConfig {

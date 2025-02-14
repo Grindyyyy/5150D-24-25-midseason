@@ -7,6 +7,8 @@
 
 namespace dlib {
 
+// motor_group.cpp
+
 // TODO: Handle motor initialization with gearsets (currently only handled by Chassis)
 
 MotorGroupConfig::MotorGroupConfig(

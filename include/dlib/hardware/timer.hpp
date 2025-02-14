@@ -3,6 +3,8 @@
 
 namespace dlib {
 
+// timer.hpp
+
 class Timer {
 public:
     Timer();

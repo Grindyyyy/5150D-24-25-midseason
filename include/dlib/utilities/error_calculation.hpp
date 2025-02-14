@@ -3,6 +3,8 @@
 
 namespace dlib {
 
+// error_calculation.hpp
+
 au::Quantity<au::Meters, double> linear_error(
     const au::Quantity<au::Meters, double> target, 
     const au::Quantity<au::Meters, double> reading

@@ -4,6 +4,8 @@
 
 namespace dlib {
 
+// feedforward.hpp
+
 /**
  * @brief The gains for a simple motor feedforward controller
  * 
